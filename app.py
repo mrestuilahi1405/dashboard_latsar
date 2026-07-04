@@ -66,7 +66,7 @@ def load_geojson():
     return None
 
 def download_csv(df, filename):
-    return st.download_button(label="📥 Unduh CSV Rekap", data=df.to_csv(index=False).encode('utf-8'), file_name=filename, mime='text/csv', use_container_width=True)
+    return st.download_button(label="📥 Unduh CSV Rekap Data", data=df.to_csv(index=False).encode('utf-8'), file_name=filename, mime='text/csv', use_container_width=True)
 
 with st.spinner("Sinkronisasi Database BPS..."):
     df_demo = fetch_data("Demografi")
@@ -99,9 +99,6 @@ def apply_filter(df):
 # 4. HALAMAN DASHBOARD INTERAKTIF
 # ==============================================================================
 
-# ---------------------------------------------------------
-# HALAMAN 1: EKSEKUTIF (THE 7 KEY METRICS)
-# ---------------------------------------------------------
 if menu == "Ringkasan Eksekutif":
     st.title(":material/dashboard: Command Center Makro Daerah")
     
@@ -133,9 +130,6 @@ if menu == "Ringkasan Eksekutif":
         d1.metric(f"Total Penduduk - {int(c_dem['tahun'])}", f"{c_dem['jumlah_penduduk']:,.0f}".replace(",", "."), border=True)
         d2.metric(f"Luas Panen Padi - {int(c_pd['tahun'])}", f"{c_pd['luas_panen']:,.0f} Ha".replace(",", "."), border=True)
 
-# ---------------------------------------------------------
-# HALAMAN 2: SOSIAL & DEMOGRAFI (PETA TEMATIK & ASIMETRIS)
-# ---------------------------------------------------------
 elif menu == "Sosial & Demografi":
     st.title(":material/group: Demografi & Kesejahteraan Wilayah")
     t_dem, t_kem = st.tabs(["Kependudukan & Spasial", "Kesejahteraan & Benchmarking"])
@@ -146,61 +140,59 @@ elif menu == "Sosial & Demografi":
             thn_akhir = df_f['tahun'].max()
             df_kec = df_f[(df_f['tahun'] == thn_akhir) & (df_f['kecamatan'].str.lower() != 'tanah laut')]
             
-            # GRID ASIMETRIS (PETA vs SPARKLINE)
             c_map, c_spark = st.columns([2.5, 1.2])
             
             with c_map:
                 if geo_data:
-                    # RENDER PETA CHOROPLETH SPASIAL
-                    map_data = [{"name": r['kecamatan'], "value": r['jumlah_penduduk']} for _, r in df_kec.iterrows()]
+                    # Peta menunjukkan Kepadatan Penduduk (Spasial Ekstensif)
+                    map_data = [{"name": r['kecamatan'], "value": r['kepadatan']} for _, r in df_kec.iterrows()]
                     map_opts = {
-                        "title": {"text": f"Sebaran Kepadatan Demografi ({int(thn_akhir)})", "left": "center", "textStyle": {"fontSize": 14}},
-                        "tooltip": {"trigger": "item", "formatter": "{b}<br/>Populasi: {c}"},
-                        "visualMap": {"min": df_kec['jumlah_penduduk'].min(), "max": df_kec['jumlah_penduduk'].max(), "left": "left", "top": "bottom", "text": ["Tinggi", "Rendah"], "calculable": True, "inRange": {"color": ["#1E3A8A", "#D4E6F1"]}},
+                        "title": {"text": f"Peta Kepadatan Penduduk ({int(thn_akhir)})", "left": "center", "textStyle": {"fontSize": 14}},
+                        "tooltip": {"trigger": "item", "formatter": "{b}<br/>Kepadatan: {c} Jiwa/km²"},
+                        "visualMap": {"min": df_kec['kepadatan'].min(), "max": df_kec['kepadatan'].max(), "left": "left", "top": "bottom", "text": ["Tinggi", "Rendah"], "calculable": True, "inRange": {"color": ["#D4E6F1", "#1E3A8A"]}},
                         "series": [{"type": "map", "map": "Tanah_Laut", "roam": True, "label": {"show": False}, "data": map_data}]
                     }
                     st_echarts(options=map_opts, map=Map("Tanah_Laut", geo_data), height="450px")
                 else:
+                    # Fallback Bar Chart
                     bar_opts = {
-                        "title": {"text": f"Sebaran Penduduk per Kecamatan ({int(thn_akhir)})"},
+                        "title": {"text": f"Kepadatan Penduduk per Kecamatan ({int(thn_akhir)})"},
                         "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}, "formatter": FMT_ID},
                         "xAxis": {"type": "value", "show": False},
-                        "yAxis": {"type": "category", "data": df_kec.sort_values('jumlah_penduduk')['kecamatan'].tolist(), "axisLine": {"show": False}},
-                        "series": [{"type": "bar", "data": df_kec.sort_values('jumlah_penduduk')['jumlah_penduduk'].tolist(), "itemStyle": {"color": COLORS[0]}, "label": {"show": True, "position": "right", "formatter": JsCode("function(p){return Number(p.value).toLocaleString('id-ID')}")}}]
+                        "yAxis": {"type": "category", "data": df_kec.sort_values('kepadatan')['kecamatan'].tolist(), "axisLine": {"show": False}},
+                        "series": [{"type": "bar", "data": df_kec.sort_values('kepadatan')['kepadatan'].tolist(), "itemStyle": {"color": COLORS[0]}, "label": {"show": True, "position": "right"}}]
                     }
                     st_echarts(options=bar_opts, height="450px")
                     
             with c_spark:
-                # SPARKLINE PERTUMBUHAN AGREGAT
+                # Menghindari redundansi visual: Jika peta muncul, grafik sebelah kanan menampilkan Tren Agregat dan Rasio Gender, bukan bar chart kecamatan lagi.
                 df_kab = df_f[df_f['kecamatan'].str.lower() == 'tanah laut'].sort_values('tahun')
                 spark_opts = {
-                    "title": {"text": "Tren Agregat Kabupaten", "textStyle": {"fontSize": 14}},
+                    "title": {"text": "Tren Agregat Laju Populasi", "textStyle": {"fontSize": 14}},
                     "xAxis": {"type": "category", "show": False, "data": df_kab['tahun'].astype(int).astype(str).tolist()},
                     "yAxis": {"type": "value", "show": False, "min": 'dataMin'},
                     "series": [{"type": "line", "data": df_kab['jumlah_penduduk'].tolist(), "smooth": True, "areaStyle": {"opacity": 0.2}, "itemStyle": {"color": COLORS[1]}}]
                 }
                 st_echarts(options=spark_opts, height="200px")
-                st.caption("Porsi Gender")
+                st.caption("Porsi Rasio Gender Terkini")
                 lk, pr = df_kab.iloc[-1]['lk'], df_kab.iloc[-1]['pr']
-                st_echarts({"series": [{"type": "pie", "radius": ["40%", "70%"], "data": [{"name": "Laki-laki", "value": lk}, {"name": "Perempuan", "value": pr}], "itemStyle": {"borderRadius": 5}}], "color": [COLORS[0], COLORS[1]]}, height="200px")
+                st_echarts({"series": [{"type": "pie", "radius": ["40%", "70%"], "data": [{"name": "Laki-laki", "value": lk}, {"name": "Perempuan", "value": pr}], "itemStyle": {"borderRadius": 5}, "label": {"formatter": "{b}: {d}%"}}], "color": [COLORS[0], COLORS[1]]}, height="200px")
 
     with t_kem:
         df_f = apply_filter(df_kes)
         if not df_f.empty:
             c_bench, c_radar = st.columns([1.8, 1])
-            
             with c_bench:
-                # BENCHMARKING (KOMPARASI REGIONAL)
                 df_srt = df_f.sort_values('tahun')
                 bench_opts = {
-                    "title": {"text": "Benchmarking IPM: Tanah Laut vs Provinsi Kalsel", "textStyle": {"fontSize": 14}},
+                    "title": {"text": "Benchmarking IPM: Tanah Laut vs Provinsi", "textStyle": {"fontSize": 14}},
                     "tooltip": {"trigger": "axis"},
                     "legend": {"bottom": 0},
                     "xAxis": {"type": "category", "data": df_srt['tahun'].astype(int).astype(str).tolist()},
                     "yAxis": {"type": "value", "min": 'dataMin'},
                     "series": [
                         {"name": "Tanah Laut", "type": "line", "smooth": True, "data": df_srt['ipm'].tolist(), "itemStyle": {"color": COLORS[0]}, "lineStyle": {"width": 3}},
-                        {"name": "Provinsi Kalsel", "type": "line", "smooth": True, "data": df_srt['ipm_kalsel'].tolist(), "itemStyle": {"color": COLORS[1], "type": "dashed"}}
+                        {"name": "Prov. Kalsel", "type": "line", "smooth": True, "data": df_srt['ipm_kalsel'].tolist(), "itemStyle": {"color": COLORS[1], "type": "dashed"}}
                     ]
                 }
                 st_echarts(options=bench_opts, height="350px")
@@ -208,31 +200,25 @@ elif menu == "Sosial & Demografi":
             with c_radar:
                 curr_ipm = df_f.sort_values('tahun').iloc[-1]
                 radar_opts = {
-                    "title": {"text": "Profil Dimensi IPM", "textStyle": {"fontSize": 14}},
+                    "title": {"text": "Profil Dimensi IPM Terkini", "textStyle": {"fontSize": 14}},
                     "radar": {"indicator": [{"name": "UHH", "max": 80}, {"name": "HLS", "max": 15}, {"name": "RLS", "max": 12}]},
                     "series": [{"type": "radar", "data": [{"value": [curr_ipm['uhh'], curr_ipm['hls'], curr_ipm['rls']]}], "itemStyle": {"color": COLORS[2]}, "areaStyle": {"opacity": 0.3}}]
                 }
                 st_echarts(options=radar_opts, height="350px")
                 
-            # INTERACTIVE DATA TABLE
             download_csv(df_f, "kesejahteraan_tanahlaut.csv")
 
-# ---------------------------------------------------------
-# HALAMAN 3: PEREKONOMIAN (EARLY WARNING DASHBOARD)
-# ---------------------------------------------------------
 elif menu == "Perekonomian Daerah":
-    st.title(":material/monitoring: Perekonomian & Early Warning")
-    t_ew, t_pdrb = st.tabs(["🚦 Early Warning Matrix", "Eksplorasi ADHK Sektoral"])
+    st.title(":material/monitoring: Perekonomian & Analisis Portofolio")
+    t_ew, t_quad = st.tabs(["🚦 Early Warning Matrix", "📊 Kuadran Analisis Portofolio"])
 
     with t_ew:
         df_f = apply_filter(df_pdrb)
         if not df_f.empty:
-            # KALKULASI MATRIKS PERINGATAN DINI (HEATMAP PDRB SEKTORAL)
             st.markdown("""<div class='insight-box' style='border-left-color: #DC2626;'>
-            <div class='insight-title'>🚦 Sistem Peringatan Dini (Early Warning Dashboard)</div>
-            <div class='insight-text'>Matriks di bawah merepresentasikan YoY Growth (Pertumbuhan Tahunan) setiap lapangan usaha. Area berwarna merah menunjukkan sektor yang sedang mengalami kontraksi historis parah dan membutuhkan intervensi strategis OPD terkait.</div></div>""", unsafe_allow_html=True)
+            <div class='insight-title'>🚦 Sistem Peringatan Dini (Early Warning)</div>
+            <div class='insight-text'>Matriks Pertumbuhan Sektoral (YoY). Area merah menunjukkan kontraksi yang memerlukan intervensi kebijakan segera.</div></div>""", unsafe_allow_html=True)
             
-            # Pivot dan Kalkulasi Pertumbuhan per Sektor
             df_pivot = df_f.pivot(index='tahun', columns='sektor', values='nilai_adhk')
             df_growth = df_pivot.pct_change() * 100
             df_growth = df_growth.dropna().reset_index()
@@ -246,7 +232,7 @@ elif menu == "Perekonomian Daerah":
                     heatmap_data.append([y_idx, s_idx, round(row[s], 2)])
 
             heat_opts = {
-                "tooltip": {"position": "top", "formatter": JsCode("function(p){return 'Pertumbuhan: <b>' + p.data[2] + '%</b>'}")},
+                "tooltip": {"position": "top", "formatter": JsCode("function(p){return p.name + '<br/>Pertumbuhan: <b>' + p.data[2] + '%</b>'}")},
                 "grid": {"top": "5%", "bottom": "15%", "left": "25%"},
                 "xAxis": {"type": "category", "data": years, "splitArea": {"show": True}},
                 "yAxis": {"type": "category", "data": sektors, "splitArea": {"show": True}},
@@ -255,58 +241,79 @@ elif menu == "Perekonomian Daerah":
             }
             st_echarts(options=heat_opts, height="450px")
 
-    with t_pdrb:
-        df_f = apply_filter(df_pdrb)
+    with t_quad:
+        # THE NEXT BIG UPGRADE: ANALISIS KUADRAN BIVARIAT (BCG MATRIX STYLE)
         if not df_f.empty:
-            # KOMPARASI REGIONAL PDRB
-            df_pe = df_f.groupby('tahun', as_index=False).agg({'nilai_adhk':'sum', 'pe_kalsel':'mean'})
-            df_pe['pertumbuhan_tala'] = df_pe['nilai_adhk'].pct_change() * 100
-            df_pe = df_pe.dropna()
-            
-            c_bar, c_bench = st.columns([1.2, 1.5])
-            with c_bar:
-                tahun_terbaru = df_f['tahun'].max()
-                df_latest = df_f[df_f['tahun'] == tahun_terbaru].sort_values('nilai_adhk', ascending=True)
-                bar_opts = {
-                    "title": {"text": f"Pangsa Sektor ADHK ({int(tahun_terbaru)})", "textStyle": {"fontSize": 14}},
-                    "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-                    "grid": {"left": "35%", "bottom": "10%"},
-                    "xAxis": {"type": "value", "show": False},
-                    "yAxis": {"type": "category", "data": df_latest['sektor'].tolist(), "axisLine": {"show": False}},
-                    "series": [{"type": "bar", "data": df_latest['nilai_adhk'].tolist(), "itemStyle": {"color": COLORS[0]}}]
-                }
-                st_echarts(options=bar_opts, height="350px")
-                
-            with c_bench:
-                bench_opts = {
-                    "title": {"text": "Benchmarking Pertumbuhan Ekonomi", "textStyle": {"fontSize": 14}},
-                    "tooltip": {"trigger": "axis"},
-                    "legend": {"bottom": 0},
-                    "xAxis": {"type": "category", "data": df_pe['tahun'].astype(int).astype(str).tolist()},
-                    "yAxis": {"type": "value", "axisLabel": {"formatter": "{value}%"}},
-                    "series": [
-                        {"name": "Kab. Tanah Laut", "type": "bar", "data": df_pe['pertumbuhan_tala'].round(2).tolist(), "itemStyle": {"color": COLORS[1]}},
-                        {"name": "Prov. Kalsel", "type": "line", "data": df_pe['pe_kalsel'].tolist(), "itemStyle": {"color": COLORS[3]}, "symbolSize": 10}
-                    ]
-                }
-                st_echarts(options=bench_opts, height="350px")
+            st.markdown("""<div class='insight-box' style='border-left-color: #8E44AD;'>
+            <div class='insight-title'>📈 Analisis Kuadran Kinerja Sektoral</div>
+            <div class='insight-text'>Sumbu X merepresentasikan <b>Pangsa (Kontribusi)</b> sektor terhadap total PDRB, sedangkan Sumbu Y merepresentasikan <b>Laju Pertumbuhan</b>. Sektor di kuadran Kanan Atas adalah penggerak utama (Bintang) ekonomi daerah.</div></div>""", unsafe_allow_html=True)
 
+            tahun_terbaru = df_f['tahun'].max()
+            df_now = df_f[df_f['tahun'] == tahun_terbaru].copy()
+            df_prev = df_f[df_f['tahun'] == (tahun_terbaru - 1)].copy()
+            
+            # Gabungkan untuk mendapatkan Pertumbuhan dan Pangsa secara bersamaan
+            df_merged = pd.merge(df_now, df_prev, on='sektor', suffixes=('_curr', '_prev'))
+            tot_adhb_curr = df_merged['nilai_adhb_curr'].sum()
+            
+            df_merged['pangsa'] = (df_merged['nilai_adhb_curr'] / tot_adhb_curr) * 100
+            df_merged['pertumbuhan'] = ((df_merged['nilai_adhk_curr'] - df_merged['nilai_adhk_prev']) / df_merged['nilai_adhk_prev']) * 100
+            
+            avg_pangsa = df_merged['pangsa'].mean()
+            avg_pertumbuhan = df_merged['pertumbuhan'].mean()
+
+            scatter_data = []
+            for _, row in df_merged.iterrows():
+                scatter_data.append({
+                    "name": row['sektor'],
+                    "value": [round(row['pangsa'], 2), round(row['pertumbuhan'], 2)]
+                })
+
+            scatter_opts = {
+                "tooltip": {
+                    "trigger": "item",
+                    "formatter": JsCode("function(p){return '<b>' + p.data.name + '</b><br/>Pangsa: ' + p.data.value[0] + '%<br/>Pertumbuhan: ' + p.data.value[1] + '%';}")
+                },
+                "xAxis": {"type": "value", "name": "Pangsa PDRB (%)", "nameLocation": "middle", "nameGap": 30},
+                "yAxis": {"type": "value", "name": "Pertumbuhan Ekonomi (%)", "nameLocation": "middle", "nameGap": 40},
+                "series": [{
+                    "type": "scatter",
+                    "symbolSize": 20,
+                    "itemStyle": {"color": COLORS[1], "opacity": 0.8},
+                    "data": scatter_data,
+                    "label": {
+                        "show": True,
+                        "formatter": "{b}",
+                        "position": "right",
+                        "fontSize": 11,
+                        "color": "#333"
+                    },
+                    "markLine": {
+                        "animation": False,
+                        "lineStyle": {"type": "solid", "color": "#7F8C8D"},
+                        "label": {"show": False},
+                        "data": [
+                            {"xAxis": avg_pangsa, "tooltip": {"formatter": "Rata-rata Pangsa"}}, 
+                            {"yAxis": avg_pertumbuhan, "tooltip": {"formatter": "Rata-rata Pertumbuhan"}}
+                        ]
+                    }
+                }]
+            }
+            st_echarts(options=scatter_opts, height="500px")
             download_csv(df_f, "pdrb_tanahlaut.csv")
 
-# ---------------------------------------------------------
-# HALAMAN 4: PERTANIAN
-# ---------------------------------------------------------
 elif menu == "Sektor Pertanian":
     st.title(":material/agriculture: Ketahanan Pangan Daerah")
     df_f = apply_filter(df_pert)
+    df_n = apply_filter(df_inf)
     
     if not df_f.empty:
         df_padi = df_f[df_f['komoditas'].str.lower() == 'padi'].sort_values('tahun')
         
-        c_bar, c_pie = st.columns([2, 1])
+        c_bar, c_line = st.columns(2)
         with c_bar:
             padi_opts = {
-                "title": {"text": "Korelasi Luas Panen dan Produksi Padi", "textStyle": {"fontSize": 14}},
+                "title": {"text": "Luas Panen vs Produksi (Padi)", "textStyle": {"fontSize": 14}},
                 "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}},
                 "legend": {"bottom": 0},
                 "xAxis": {"type": "category", "data": df_padi['tahun'].astype(int).astype(str).tolist()},
@@ -318,14 +325,15 @@ elif menu == "Sektor Pertanian":
             }
             st_echarts(options=padi_opts, height="400px")
             
-        with c_pie:
-            df_jagung = df_f[df_f['komoditas'].str.lower() == 'jagung'].sort_values('tahun')
-            pie_opts = {
-                "title": {"text": f"Produksi Terakhir", "textStyle": {"fontSize": 14}, "left": "center"},
-                "tooltip": {"trigger": "item", "formatter": "{b}: {c} ({d}%)"},
-                "color": [COLORS[2], COLORS[1]],
-                "series": [{"type": "pie", "radius": ["40%", "70%"], "data": [{"name": "Padi", "value": df_padi.iloc[-1]['produksi']}, {"name": "Jagung", "value": df_jagung.iloc[-1]['produksi']}], "itemStyle": {"borderRadius": 5}}]
-            }
-            st_echarts(options=pie_opts, height="400px")
-            
-        download_csv(df_f, "pertanian_tanahlaut.csv")
+        with c_line:
+            if not df_n.empty and 'ntp' in df_n.columns:
+                df_n['periode'] = df_n['bulan'].astype(str) + " " + df_n['tahun'].astype(int).astype(str)
+                ntp_opts = {
+                    "title": {"text": "Nilai Tukar Petani (NTP)", "textStyle": {"fontSize": 14}},
+                    "tooltip": {"trigger": "axis"},
+                    "dataZoom": [{"type": "inside"}],
+                    "xAxis": {"type": "category", "data": df_n['periode'].tolist()},
+                    "yAxis": {"type": "value", "scale": True},
+                    "series": [{"name": "NTP", "type": "line", "data": df_n['ntp'].tolist(), "itemStyle": {"color": COLORS[4]}, "markLine": {"data": [{"yAxis": 100, "name": "Batas Sejahtera"}], "lineStyle": {"color": COLORS[3]}}}]
+                }
+                st_echarts(options=ntp_opts, height="400px")
