@@ -25,7 +25,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# JS ECharts Formatter yang Bulletproof (Anti-Error)
 FMT_ID = JsCode("""
 function(params) {
     if (Array.isArray(params)) {
@@ -166,7 +165,6 @@ elif menu == "Demografi & Kemiskinan":
             df_kec = df_f[(df_f['tahun'] == t_akhir) & (df_f['kecamatan'].str.lower() != 'tanah laut')]
             
             c_map, c_spark = st.columns([7, 3])
-            
             with c_map:
                 if geo_data:
                     map_data = [{"name": r['kecamatan'], "value": r['jumlah_penduduk']} for _, r in df_kec.iterrows()]
@@ -254,8 +252,6 @@ elif menu == "Perekonomian & Inflasi":
                     "yAxis": {"type": "category", "data": df_latest['sektor'].tolist()[::-1], "axisLine": {"show": False}, "axisTick": {"show": False}},
                     "series": [{"type": "bar", "data": df_latest['nilai_adhb'].tolist()[::-1], "itemStyle": {"color": COLORS[0]}}]
                 }
-                
-                # PERBAIKAN: Menggunakan on_select API yang resmi, bukan events dict untuk mencegah PyArrow Error
                 bar_click = st_echarts(options=bar_opts, height="400px", key="pdrb_bar", on_select="rerun", selection_mode="points")
                 
             with c_line:
@@ -264,9 +260,7 @@ elif menu == "Perekonomian & Inflasi":
                     idx = bar_click["selection"]["point_indices"][0]
                     sel_sektor = df_latest['sektor'].tolist()[::-1][idx]
                 
-                # PERBAIKAN: Memastikan sel_sektor selalu string murni untuk dievaluasi Pandas PyArrow Backend
                 df_tren = df_f[df_f['sektor'] == str(sel_sektor)].sort_values('tahun')
-                
                 line_opts = {
                     "title": {"text": f"Tren ADHB: {sel_sektor}", "textStyle": {"fontSize": 14}},
                     "tooltip": {"trigger": "axis", "formatter": FMT_ID},
@@ -282,28 +276,52 @@ elif menu == "Perekonomian & Inflasi":
         if not df_f.empty:
             st.markdown("""<div class='insight-box' style='border-left-color: #8E44AD;'>
             <div class='insight-title'>📈 Analisis Kuadran Kinerja Sektoral</div>
-            <div class='insight-text'>Sumbu X (Bawah): <b>Pangsa/Kontribusi</b>. Sumbu Y (Kiri): <b>Pertumbuhan</b>. Sektor di Kanan Atas adalah penggerak utama. Sektor di Kiri Bawah berisiko menjadi beban.</div></div>""", unsafe_allow_html=True)
+            <div class='insight-text'>Sumbu X (Bawah): <b>Pangsa/Kontribusi</b>. Sumbu Y (Kiri): <b>Pertumbuhan</b>. Kuadran ini ditarik dari garis pusat Pertumbuhan PDRB Daerah secara makro.</div></div>""", unsafe_allow_html=True)
 
             t_akhir = df_f['tahun'].max()
             df_now = df_f[df_f['tahun'] == t_akhir].copy()
             df_prev = df_f[df_f['tahun'] == (t_akhir - 1)].copy()
             
             df_m = pd.merge(df_now, df_prev, on='sektor', suffixes=('_curr', '_prev'))
-            tot = df_m['nilai_adhb_curr'].sum()
-            df_m['pangsa'] = (df_m['nilai_adhb_curr'] / tot) * 100
+            tot_adhb_curr = df_m['nilai_adhb_curr'].sum()
+            
+            # Kalkulasi PDRB Riil Regional
+            tot_adhk_curr = df_m['nilai_adhk_curr'].sum()
+            tot_adhk_prev = df_m['nilai_adhk_prev'].sum()
+            true_growth = ((tot_adhk_curr - tot_adhk_prev) / tot_adhk_prev) * 100
+            avg_pangsa = 100.0 / len(df_m)
+            
+            df_m['pangsa'] = (df_m['nilai_adhb_curr'] / tot_adhb_curr) * 100
             df_m['pertumbuhan'] = ((df_m['nilai_adhk_curr'] - df_m['nilai_adhk_prev']) / df_m['nilai_adhk_prev']) * 100
             
-            avg_p, avg_g = df_m['pangsa'].mean(), df_m['pertumbuhan'].mean()
             scat_data = [{"name": r['sektor'], "value": [round(r['pangsa'], 2), round(r['pertumbuhan'], 2)]} for _, r in df_m.iterrows()]
 
             scatter_opts = {
-                "tooltip": {"trigger": "item", "formatter": JsCode("function(p){return '<b>' + p.data.name + '</b><br/>Pangsa: ' + p.data.value[0] + '%<br/>Growth: ' + p.data.value[1] + '%';}")},
+                "tooltip": {
+                    "trigger": "item", 
+                    "formatter": JsCode("""
+                        function(p){
+                            if(p.componentType === 'markLine') {
+                                return p.name + ': <b>' + Number(p.value).toFixed(2) + '%</b>';
+                            }
+                            return '<b>' + p.data.name + '</b><br/>Pangsa: ' + p.data.value[0] + '%<br/>Growth: ' + p.data.value[1] + '%';
+                        }
+                    """)
+                },
                 "xAxis": {"type": "value", "name": "Pangsa PDRB (%)", "nameLocation": "middle", "nameGap": 30},
                 "yAxis": {"type": "value", "name": "Pertumbuhan (%)", "nameLocation": "middle", "nameGap": 40},
                 "series": [{
                     "type": "scatter", "symbolSize": 20, "itemStyle": {"color": COLORS[2], "opacity": 0.8}, "data": scat_data,
                     "label": {"show": True, "formatter": "{b}", "position": "right", "fontSize": 11},
-                    "markLine": {"animation": False, "lineStyle": {"type": "dashed", "color": "#7F8C8D"}, "label": {"show": False}, "data": [{"xAxis": avg_p}, {"yAxis": avg_g}]}
+                    "markLine": {
+                        "animation": False, 
+                        "lineStyle": {"type": "dashed", "color": "#7F8C8D"}, 
+                        "label": {"show": False}, 
+                        "data": [
+                            {"xAxis": avg_pangsa, "name": "Batas Pangsa"}, 
+                            {"yAxis": true_growth, "name": "Laju PDRB Daerah"}
+                        ]
+                    }
                 }]
             }
             st_echarts(options=scatter_opts, height="450px")
