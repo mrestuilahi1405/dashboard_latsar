@@ -68,7 +68,6 @@ def fetch_data(sheet_name):
 
 @st.cache_data
 def load_geojson():
-    # Mengambil file yang sudah diperbaiki atribut 'name'-nya
     if os.path.exists("tanah_laut.geojson"):
         with open("tanah_laut.geojson", "r", encoding="utf-8") as f:
             return json.load(f)
@@ -166,12 +165,10 @@ elif menu == "Demografi & Kemiskinan":
             t_akhir = df_f['tahun'].max()
             df_kec = df_f[(df_f['tahun'] == t_akhir) & (df_f['kecamatan'].str.lower() != 'tanah laut')]
             
-            # GRID ASIMETRIS (Peta mengambil ruang dominan, grafik komposisi di sisi kanan)
             c_map, c_spark = st.columns([7, 3])
             
             with c_map:
                 if geo_data:
-                    # PASTIKAN GeoJSON sudah diperbaiki atribut 'name'-nya!
                     map_data = [{"name": r['kecamatan'], "value": r['jumlah_penduduk']} for _, r in df_kec.iterrows()]
                     map_opts = {
                         "title": {"text": f"Peta Persebaran Demografi ({int(t_akhir)})", "left": "center", "textStyle": {"fontSize": 15}},
@@ -208,7 +205,6 @@ elif menu == "Demografi & Kemiskinan":
             
             c_bench, c_radar = st.columns([1.8, 1])
             with c_bench:
-                # BENCHMARKING PROVINSI
                 df_srt = df_f.sort_values('tahun')
                 bench_opts = {
                     "title": {"text": "Benchmarking IPM: Kabupaten vs Provinsi Kalsel", "textStyle": {"fontSize": 14}},
@@ -258,13 +254,18 @@ elif menu == "Perekonomian & Inflasi":
                     "yAxis": {"type": "category", "data": df_latest['sektor'].tolist()[::-1], "axisLine": {"show": False}, "axisTick": {"show": False}},
                     "series": [{"type": "bar", "data": df_latest['nilai_adhb'].tolist()[::-1], "itemStyle": {"color": COLORS[0]}}]
                 }
-                # CROSS FILTERING ECHARTS (KLIK BATANG -> LINE BERUBAH)
-                clicked = st_echarts(options=bar_opts, height="400px", events={"click": "function(p){return p.name}"})
+                
+                # PERBAIKAN: Menggunakan on_select API yang resmi, bukan events dict untuk mencegah PyArrow Error
+                bar_click = st_echarts(options=bar_opts, height="400px", key="pdrb_bar", on_select="rerun", selection_mode="points")
                 
             with c_line:
-                # Default sektor ke urutan pertama jika belum diklik
-                sel_sektor = clicked if clicked else df_latest.iloc[0]['sektor']
-                df_tren = df_f[df_f['sektor'] == sel_sektor].sort_values('tahun')
+                sel_sektor = df_latest.iloc[0]['sektor']
+                if bar_click and "selection" in bar_click and bar_click["selection"].get("point_indices"):
+                    idx = bar_click["selection"]["point_indices"][0]
+                    sel_sektor = df_latest['sektor'].tolist()[::-1][idx]
+                
+                # PERBAIKAN: Memastikan sel_sektor selalu string murni untuk dievaluasi Pandas PyArrow Backend
+                df_tren = df_f[df_f['sektor'] == str(sel_sektor)].sort_values('tahun')
                 
                 line_opts = {
                     "title": {"text": f"Tren ADHB: {sel_sektor}", "textStyle": {"fontSize": 14}},
