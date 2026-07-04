@@ -69,8 +69,8 @@ def fetch_data(sheet_name):
 @st.cache_data
 def load_geojson():
     # Mengambil file yang sudah diperbaiki atribut 'name'-nya
-    if os.path.exists("tanah_laut_valid.geojson"):
-        with open("tanah_laut_valid.geojson", "r", encoding="utf-8") as f:
+    if os.path.exists("tanah_laut.geojson"):
+        with open("tanah_laut.geojson", "r", encoding="utf-8") as f:
             return json.load(f)
     return None
 
@@ -181,7 +181,7 @@ elif menu == "Demografi & Kemiskinan":
                     }
                     st_echarts(options=map_opts, map=Map("TALA", geo_data), height="500px")
                 else:
-                    st.warning("Menunggu file tanah_laut_valid.geojson")
+                    st.warning("Menunggu file tanah_laut.geojson")
                     
             with c_spark:
                 df_kab = df_f[df_f['kecamatan'].str.lower() == 'tanah laut'].sort_values('tahun')
