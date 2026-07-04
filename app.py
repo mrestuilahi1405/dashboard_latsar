@@ -8,6 +8,7 @@ import datetime
 # ==============================================================================
 st.set_page_config(page_title="Dashboard Data Strategis BPS", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
+# --- MASUKKAN ID GOOGLE SHEETS DARI DATABASE_BPS_TIDY ---
 SHEET_ID = "1nQh8AezWpM8TfsaknlNO922yqqBWWBfDKah4fm9tpHU"
 
 # Palet Warna Data-Viz Standar BPS
@@ -17,7 +18,7 @@ st.markdown("""
 <style>
 #MainMenu, header, footer {visibility: hidden;}
 .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important; max-width: 96% !important;}
-[data-testid="stMetricValue"] {color: #1E3A8A; font-weight: 800 !important; font-size: 2rem !important;}
+[data-testid="stMetricValue"] {color: #1E3A8A; font-weight: 800 !important; font-size: 2.2rem !important;}
 [data-testid="stMetricDelta"] {font-size: 1rem !important;}
 .insight-box {background-color: #F8FAFC; border-left: 5px solid #1E3A8A; padding: 18px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
 .insight-title {font-weight: 800; color: #1E3A8A; margin-bottom: 8px; font-size: 1.1rem;}
@@ -28,7 +29,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Helper JS untuk Tooltip Ribuan/Desimal Indonesia
-TOOLTIP_FORMATTER = JsCode("""
+FMT_ID = JsCode("""
 function(params) {
     if (!Array.isArray(params)) {
         return params.name + '<br/>' + params.seriesName + ': <b>' + Number(params.value).toLocaleString('id-ID') + '</b>';
@@ -85,12 +86,14 @@ def generate_analytical_insight(df, indicator_col, name, unit="%", higher_is_goo
     else:
         implikasi = "Dinamika ini menjadi sinyal peringatan (*early warning*) yang menuntut re-evaluasi kebijakan sektoral oleh OPD terkait."
         icon = "⚠️"
+        
+    val_fmt = f"{int(val_curr):,}".replace(",", ".") if val_curr >= 1000 else f"{val_curr:g}"
 
     return f"""
     <div class='insight-box'>
         <div class='insight-title'>{icon} Analisis Eksekutif: {name}</div>
         <div class='insight-text'>
-            Pada tahun {int(curr['tahun'])}, {name} berada pada level <b>{val_curr:g}{unit}</b>. 
+            Pada tahun {int(curr['tahun'])}, {name} berada pada level <b>{val_fmt}{unit}</b>. 
             Dibandingkan periode {int(prev['tahun'])}, indikator ini {arah}{poin}. <br>
             <i>{implikasi}</i>
         </div>
@@ -105,7 +108,7 @@ with st.spinner("Sinkronisasi Database BPS..."):
     df_pert = fetch_data("Pertanian")
 
 # ==============================================================================
-# 3. SIDEBAR & GLOBAL TIME FILTER (DIREVISI)
+# 3. SIDEBAR & GLOBAL TIME FILTER
 # ==============================================================================
 with st.sidebar:
     st.markdown('<div style="text-align: center; margin-bottom: 20px;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Logo_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg/512px-Logo_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg.png" width="160"></div>', unsafe_allow_html=True)
@@ -114,12 +117,11 @@ with st.sidebar:
     st.markdown("---")
     
     st.markdown("### ⏳ Filter Periode Waktu")
-    # PERBAIKAN: Deteksi tahun minimum dinamis langsung dari dataset, jika kosong default ke 2010
     min_year = int(df_demo['tahun'].min()) if not df_demo.empty else 2010
     curr_year = datetime.datetime.now().year
     
     f_tahun = st.slider("Rentang Analisis", min_year, curr_year, (min_year, curr_year), label_visibility="collapsed")
-    st.caption("Gunakan slider untuk menyesuaikan rentang waktu di seluruh grafik dashboard.")
+    st.caption("Sesuaikan rentang waktu di seluruh grafik dashboard.")
     st.markdown("---")
     st.caption(f"© {curr_year} BPS Kabupaten Tanah Laut")
 
@@ -185,7 +187,6 @@ elif menu == "Perekonomian Daerah (PDRB)":
             df_pe['pertumbuhan'] = df_pe['nilai_adhk'].pct_change() * 100
             st.markdown(generate_analytical_insight(df_pe.dropna(), 'pertumbuhan', 'Pertumbuhan Ekonomi (ADHK)', '%', True), unsafe_allow_html=True)
             
-            # UPGRADE: Penambahan Treemap Chart dan tata letak 3 Kolom
             tahun_terbaru = df_f['tahun'].max()
             df_latest = df_f[df_f['tahun'] == tahun_terbaru].sort_values('nilai_adhb', ascending=False)
             
@@ -194,7 +195,7 @@ elif menu == "Perekonomian Daerah (PDRB)":
             with c_bar:
                 bar_opts = {
                     "title": {"text": f"Pangsa Sektor ({int(tahun_terbaru)})", "textStyle": {"fontSize": 14}},
-                    "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
+                    "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}, "formatter": FMT_ID},
                     "grid": {"left": "35%", "right": "5%", "top": "15%", "bottom": "10%"},
                     "xAxis": {"type": "value", "show": False},
                     "yAxis": {"type": "category", "data": df_latest['sektor'].tolist()[::-1], "axisLine": {"show": False}, "axisTick": {"show": False}},
@@ -203,7 +204,6 @@ elif menu == "Perekonomian Daerah (PDRB)":
                 bar_click = st_echarts(options=bar_opts, height="380px", key="pdrb_bar", on_select="rerun", selection_mode="points")
 
             with c_tree:
-                # UPGRADE: TREEMAP CHART
                 tree_data = [{"name": s, "value": v} for s, v in zip(df_latest['sektor'], df_latest['nilai_adhb'])]
                 tree_opts = {
                     "title": {"text": "Treemap Komposisi Ekonomi", "textStyle": {"fontSize": 14}},
@@ -220,7 +220,7 @@ elif menu == "Perekonomian Daerah (PDRB)":
                 df_trend_sektor = df_f[df_f['sektor'] == selected_sektor].sort_values('tahun')
                 line_opts = {
                     "title": {"text": f"Tren ADHB: {selected_sektor}", "textStyle": {"fontSize": 14}},
-                    "tooltip": {"trigger": "axis", "formatter": TOOLTIP_FORMATTER},
+                    "tooltip": {"trigger": "axis", "formatter": FMT_ID},
                     "xAxis": {"type": "category", "data": df_trend_sektor['tahun'].astype(int).astype(str).tolist()},
                     "yAxis": {"type": "value", "splitLine": {"lineStyle": {"color": "#EAECEE"}}, "axisLabel": {"formatter": JsCode("function(v){return (v/1000000).toFixed(1) + ' T'}")}},
                     "series": [{"type": "line", "smooth": True, "data": df_trend_sektor['nilai_adhb'].tolist(), "itemStyle": {"color": COLORS[1]}, "areaStyle": {"opacity": 0.1}, "symbolSize": 8}]
@@ -238,7 +238,6 @@ elif menu == "Perekonomian Daerah (PDRB)":
             
             c_gauge, c_line = st.columns([1, 2.5])
             with c_gauge:
-                # UPGRADE: GAUGE CHART INFLASI
                 gauge_opts = {
                     "title": {"text": "Inflasi YoY Terkini", "left": "center", "textStyle": {"fontSize": 14}},
                     "series": [{"type": "gauge", "progress": {"show": True, "width": 15, "itemStyle": {"color": COLORS[3]}}, "axisLine": {"lineStyle": {"width": 15}}, "axisTick": {"show": False}, "splitLine": {"show": False}, "axisLabel": {"show": False}, "detail": {"valueAnimation": True, "formatter": "{value}%", "fontSize": 24}, "data": [{"value": curr['inflasi_yoy'], "name": ""}]}]
@@ -281,7 +280,6 @@ elif menu == "Sosial & Kemiskinan":
                 st_echarts(options=bar_opts, height="400px")
                 
             with c_pie:
-                # UPGRADE: DONUT CHART GENDER
                 tot_lk, tot_pr = float(df_kab.iloc[-1]['lk']), float(df_kab.iloc[-1]['pr'])
                 pie_opts = {
                     "title": {"text": "Komposisi Gender", "textStyle": {"fontSize": 14}, "left": "center"},
@@ -292,7 +290,6 @@ elif menu == "Sosial & Kemiskinan":
                 st_echarts(options=pie_opts, height="400px")
 
             with c_radar:
-                # UPGRADE: RADAR CHART IPM
                 curr_ipm = df_ipm.sort_values('tahun').iloc[-1]
                 radar_opts = {
                     "title": {"text": "Dimensi IPM Daerah", "textStyle": {"fontSize": 14}, "left": "center"},
@@ -322,7 +319,7 @@ elif menu == "Sosial & Kemiskinan":
             with c_dual:
                 dual_opts = {
                     "title": {"text": "Garis Kemiskinan vs Jumlah Miskin", "textStyle": {"fontSize": 14}},
-                    "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}},
+                    "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}, "formatter": FMT_ID},
                     "legend": {"bottom": 0},
                     "xAxis": {"type": "category", "data": df_k['tahun'].astype(int).astype(str).tolist()},
                     "yAxis": [{"type": "value", "name": "Jiwa", "splitLine": {"show": False}}, {"type": "value", "name": "Rupiah", "splitLine": {"lineStyle": {"color": "#EAECEE"}}}],
@@ -344,7 +341,7 @@ elif menu == "Sektor Pertanian":
         df_padi = df_f[df_f['komoditas'].str.lower() == 'padi'].sort_values('tahun')
         df_jagung = df_f[df_f['komoditas'].str.lower() == 'jagung'].sort_values('tahun')
         
-        st.markdown(generate_analytical_insight(df_padi, 'produksi', 'Produksi Padi Daerah', 'Ton', True), unsafe_allow_html=True)
+        st.markdown(generate_analytical_insight(df_padi, 'produksi', 'Produksi Padi Daerah', ' Ton', True), unsafe_allow_html=True)
         
         c_bar, c_line, c_pie = st.columns([1.2, 1.2, 1])
         with c_bar:
@@ -372,7 +369,6 @@ elif menu == "Sektor Pertanian":
                 st_echarts(options=ntp_opts, height="380px")
 
         with c_pie:
-            # UPGRADE: PIE CHART KOMPARASI KOMODITAS
             c_padi = df_padi.iloc[-1]['produksi']
             c_jagung = df_jagung.iloc[-1]['produksi'] if len(df_jagung) > 0 else 0
             pie_opts = {
