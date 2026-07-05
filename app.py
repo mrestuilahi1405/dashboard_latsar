@@ -101,6 +101,10 @@ def fetch_data(sheet_name):
     try:
         df = pd.read_csv(url)
         df.columns = df.columns.str.strip().str.lower()
+        
+        if "tahun" in df.columns:
+            df["tahun"] = df["tahun"].astype(int)
+            
         for col in df.columns:
             if col not in ['kecamatan', 'sektor', 'komoditas', 'bulan']: df[col] = df[col].apply(clean_numeric)
         return df
