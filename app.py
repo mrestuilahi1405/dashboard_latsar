@@ -6,7 +6,7 @@ import datetime
 from streamlit_echarts import st_echarts, JsCode, Map
 
 # ==============================================================================
-# 1. KONFIGURASI HALAMAN & TEMA AGNOSTIK (LIGHT/DARK)
+# 1. KONFIGURASI HALAMAN & TEMA AGNOSTIK
 # ==============================================================================
 st.set_page_config(page_title="Dashboard Strategis BPS", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
