@@ -40,14 +40,15 @@ div[data-testid="metric-container"] > div { justify-content: center; }
 }
 .insight-title {font-weight: 800; margin-bottom: 5px; font-size: 1rem; color: var(--text-color);}
 
-/* Struktur Tabel Premium Terkustomisasi */
+/* Struktur Tabel Premium Terkustomisasi (Perbaikan Warna Teks Adaptif) */
 .custom-table {
     width: 100%; border-collapse: collapse; margin: 15px 0;
     font-size: 0.95em; font-family: sans-serif;
     border-radius: 6px 6px 0 0; overflow: hidden;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+    color: var(--text-color) !important; 
 }
-.custom-table thead tr { background-color: #1E3A8A; color: #ffffff; text-align: left; }
+.custom-table thead tr { background-color: #1E3A8A; color: #ffffff !important; text-align: left; }
 .custom-table th, .custom-table td { padding: 12px 15px; }
 .custom-table tbody tr { border-bottom: 1px solid color-mix(in srgb, var(--text-color) 10%, transparent); }
 .custom-table tbody tr:nth-of-type(even) { background-color: color-mix(in srgb, var(--text-color) 3%, transparent); }
@@ -381,7 +382,7 @@ elif sub_kategori == "Ketahanan Pangan & NTP":
         with c_padi:
             padi_opts = {"backgroundColor": "transparent", "title": {"text": "Korelasi Sektoral Luas Panen & Produksi"}, "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}, "formatter": FMT_ID}, "legend": {"bottom": 0}, "xAxis": {"type": "category", "data": df_padi['tahun'].astype(int).astype(str).tolist()}, "yAxis": [{"type": "value", "name": "Ha", "splitLine": {"show":False}}, {"type": "value", "name": "Ton"}], "series": [{"name": "Luas Panen", "type": "bar", "data": df_padi['luas_panen'].tolist(), "itemStyle": {"color": "#D4E6F1"}}, {"name": "Produksi", "type": "line", "yAxisIndex": 1, "data": df_padi['produksi'].tolist(), "itemStyle": {"color": COLORS[2]}, "lineStyle": {"width": 3}}]}
             st_echarts(options=padi_opts, height="400px", theme=e_theme)
-        with c_line:
+        with c_ntp: # PERBAIKAN DI SINI (sebelumnya c_line)
             ntp_opts = {"backgroundColor": "transparent", "title": {"text": "Nilai Tukar Petani (NTP)"}, "tooltip": {"trigger": "axis"}, "dataZoom": [{"type": "inside"}], "xAxis": {"type": "category", "data": df_n['periode'].tolist()}, "yAxis": {"type": "value", "scale": True}, "series": [{"name": "NTP", "type": "line", "data": df_n['ntp'].tolist(), "itemStyle": {"color": COLORS[1]}, "markLine": {"data": [{"yAxis": 100, "name": "Paritas"}], "lineStyle": {"color": COLORS[3]}}}]}
             st_echarts(options=ntp_opts, height="400px", theme=e_theme)
         
