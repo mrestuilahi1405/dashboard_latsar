@@ -15,7 +15,10 @@ COLORS = ['#1E3A8A', '#E67E22', '#059669', '#DC2626', '#8E44AD', '#16A085']
 
 st.markdown("""
 <style>
-#MainMenu, header, footer {visibility: hidden;}
+/* PERBAIKAN: 'header' dihapus dari visibility hidden agar tombol expand sidebar (>) tetap muncul */
+#MainMenu, footer {visibility: hidden;}
+header {background-color: transparent !important;} /* Membuat header transparan agar tetap rapi */
+
 .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important; max-width: 96% !important;}
 [data-testid="stMetricValue"] {color: #1E3A8A; font-weight: 900 !important; font-size: 2.2rem !important;}
 [data-testid="stMetricDelta"] {font-size: 1.1rem !important; font-weight: 600;}
@@ -285,7 +288,6 @@ elif menu == "Perekonomian & Inflasi":
             df_m = pd.merge(df_now, df_prev, on='sektor', suffixes=('_curr', '_prev'))
             tot_adhb_curr = df_m['nilai_adhb_curr'].sum()
             
-            # Kalkulasi PDRB Riil Regional
             tot_adhk_curr = df_m['nilai_adhk_curr'].sum()
             tot_adhk_prev = df_m['nilai_adhk_prev'].sum()
             true_growth = ((tot_adhk_curr - tot_adhk_prev) / tot_adhk_prev) * 100
