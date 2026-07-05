@@ -6,25 +6,34 @@ import datetime
 from streamlit_echarts import st_echarts, JsCode, Map
 
 # ==============================================================================
-# 1. KONFIGURASI HALAMAN & TEMA
+# 1. KONFIGURASI HALAMAN & TEMA AGNOSTIK (LIGHT/DARK)
 # ==============================================================================
 st.set_page_config(page_title="Dashboard Strategis BPS", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 SHEET_ID = "1nQh8AezWpM8TfsaknlNO922yqqBWWBfDKah4fm9tpHU"
-COLORS = ['#1E3A8A', '#E67E22', '#059669', '#DC2626', '#8E44AD', '#16A085']
 
+# Palet Warna Agnostik: Dirancang agar kontras dan elegan di Light Mode maupun Dark Mode
+COLORS = ['#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#14B8A6']
+
+# CSS menggunakan variabel native Streamlit (--text-color) agar otomatis mengikuti tema
 st.markdown("""
 <style>
-/* PERBAIKAN: 'header' dihapus dari visibility hidden agar tombol expand sidebar (>) tetap muncul */
 #MainMenu, footer {visibility: hidden;}
-header {background-color: transparent !important;} /* Membuat header transparan agar tetap rapi */
-
+header {background-color: transparent !important;}
 .block-container {padding-top: 1rem !important; padding-bottom: 1rem !important; max-width: 96% !important;}
-[data-testid="stMetricValue"] {color: #1E3A8A; font-weight: 900 !important; font-size: 2.2rem !important;}
+[data-testid="stMetricValue"] {font-weight: 900 !important; font-size: 2.2rem !important; color: var(--text-color);}
 [data-testid="stMetricDelta"] {font-size: 1.1rem !important; font-weight: 600;}
-.insight-box {background-color: #F8FAFC; border-left: 5px solid #1E3A8A; padding: 18px; border-radius: 6px; margin-bottom: 25px;}
-.insight-title {font-weight: 800; color: #1E3A8A; margin-bottom: 8px; font-size: 1.1rem;}
-.insight-text {font-size: 1.05rem; line-height: 1.6; color: #334155;}
+.insight-box {
+    background-color: color-mix(in srgb, var(--text-color) 5%, transparent);
+    border-left: 5px solid #3B82F6;
+    padding: 18px; 
+    border-radius: 6px; 
+    margin-bottom: 25px;
+}
+.insight-title {font-weight: 800; margin-bottom: 8px; font-size: 1.1rem; color: var(--text-color);}
+.insight-text {font-size: 1.05rem; line-height: 1.6; color: var(--text-color);}
+.stTabs [data-baseweb="tab-list"] {gap: 24px;}
+.stTabs [data-baseweb="tab"] {font-size: 16px; font-weight: 600; padding-bottom: 10px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -106,7 +115,8 @@ with st.spinner("Sinkronisasi Database BPS..."):
 # 3. SIDEBAR NAVIGASI
 # ==============================================================================
 with st.sidebar:
-    st.markdown('<div style="text-align: center; margin-bottom: 20px;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Logo_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg/512px-Logo_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg.png" width="160"></div>', unsafe_allow_html=True)
+    # Ganti logo SVG dengan resolusi yang aman untuk tema terang/gelap
+    st.markdown('<div style="text-align: center; margin-bottom: 20px;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Logo_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg/512px-Logo_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg.png" width="160" style="background-color:rgba(255,255,255,0.8); padding:10px; border-radius:10px;"></div>', unsafe_allow_html=True)
     menu = st.radio("Navigasi", ["Ringkasan Eksekutif", "Demografi & Kemiskinan", "Perekonomian & Inflasi", "Sektor Pertanian"], label_visibility="collapsed")
     st.markdown("---")
     
@@ -151,7 +161,7 @@ if menu == "Ringkasan Eksekutif":
         e3.metric(f"Luas Panen Padi ({int(c_pd['tahun'])})", f"{c_pd['luas_panen']:,.0f} Ha".replace(",", "."), border=True)
 
         st.markdown(f"""
-        <div class='insight-box' style='border-left-color: #E67E22;'>
+        <div class='insight-box' style='border-left-color: #F59E0B;'>
             <div class='insight-title'>💡 Sintesis Kondisi Makro</div>
             <div class='insight-text'>Perekonomian bertumbuh <b>{pe_growth:.2f}%</b> dengan tingkat inflasi daerah di level <b>{c_inf['inflasi_yoy']}%</b>. Indeks Pembangunan Manusia tercatat sebesar <b>{c_kes['ipm']}</b> dengan rasio kemiskinan di <b>{c_kes['p0']}%</b>.</div>
         </div>
@@ -174,10 +184,10 @@ elif menu == "Demografi & Kemiskinan":
                     map_opts = {
                         "title": {"text": f"Peta Persebaran Demografi ({int(t_akhir)})", "left": "center", "textStyle": {"fontSize": 15}},
                         "tooltip": {"trigger": "item", "formatter": "{b}<br/>Penduduk: <b>{c} Jiwa</b>"},
-                        "visualMap": {"min": df_kec['jumlah_penduduk'].min(), "max": df_kec['jumlah_penduduk'].max(), "left": "left", "top": "bottom", "text": ["Tinggi", "Rendah"], "calculable": True, "inRange": {"color": ["#D4E6F1", "#1E3A8A"]}},
+                        "visualMap": {"min": df_kec['jumlah_penduduk'].min(), "max": df_kec['jumlah_penduduk'].max(), "left": "left", "top": "bottom", "text": ["Tinggi", "Rendah"], "calculable": True, "inRange": {"color": ["#93C5FD", "#1E3A8A"]}},
                         "series": [{"type": "map", "map": "TALA", "roam": True, "label": {"show": False}, "data": map_data}]
                     }
-                    st_echarts(options=map_opts, map=Map("TALA", geo_data), height="500px")
+                    st_echarts(options=map_opts, map=Map("TALA", geo_data), height="500px", theme="streamlit")
                 else:
                     st.warning("Menunggu file tanah_laut.geojson")
                     
@@ -187,9 +197,9 @@ elif menu == "Demografi & Kemiskinan":
                     "title": {"text": "Tren Agregat Kabupaten", "textStyle": {"fontSize": 13}},
                     "xAxis": {"type": "category", "show": False, "data": df_kab['tahun'].astype(int).astype(str).tolist()},
                     "yAxis": {"type": "value", "show": False, "min": 'dataMin'},
-                    "series": [{"type": "line", "data": df_kab['jumlah_penduduk'].tolist(), "smooth": True, "areaStyle": {"opacity": 0.2}, "itemStyle": {"color": COLORS[1]}}]
+                    "series": [{"type": "line", "data": df_kab['jumlah_penduduk'].tolist(), "smooth": True, "areaStyle": {"opacity": 0.2}, "itemStyle": {"color": COLORS[0]}}]
                 }
-                st_echarts(options=spark_opts, height="200px")
+                st_echarts(options=spark_opts, height="200px", theme="streamlit")
                 
                 pie_opts = {
                     "title": {"text": "Porsi Gender", "textStyle": {"fontSize": 13}},
@@ -197,7 +207,7 @@ elif menu == "Demografi & Kemiskinan":
                     "color": [COLORS[0], COLORS[1]],
                     "series": [{"type": "pie", "radius": ["40%", "70%"], "data": [{"name": "Laki-laki", "value": df_kab.iloc[-1]['lk']}, {"name": "Perempuan", "value": df_kab.iloc[-1]['pr']}], "itemStyle": {"borderRadius": 5}, "label": {"show": False}}]
                 }
-                st_echarts(options=pie_opts, height="200px")
+                st_echarts(options=pie_opts, height="200px", theme="streamlit")
 
     with t_kesejahteraan:
         df_f = apply_filter(df_kes)
@@ -218,7 +228,7 @@ elif menu == "Demografi & Kemiskinan":
                         {"name": "Provinsi Kalsel", "type": "line", "smooth": True, "data": df_srt['ipm_kalsel'].tolist(), "itemStyle": {"color": COLORS[1], "type": "dashed"}}
                     ]
                 }
-                st_echarts(options=bench_opts, height="400px")
+                st_echarts(options=bench_opts, height="400px", theme="streamlit")
                 
             with c_radar:
                 curr_ipm = df_srt.iloc[-1]
@@ -227,7 +237,7 @@ elif menu == "Demografi & Kemiskinan":
                     "radar": {"indicator": [{"name": "UHH", "max": 80}, {"name": "HLS", "max": 15}, {"name": "RLS", "max": 12}]},
                     "series": [{"type": "radar", "data": [{"value": [curr_ipm['uhh'], curr_ipm['hls'], curr_ipm['rls']]}], "itemStyle": {"color": COLORS[2]}, "areaStyle": {"opacity": 0.3}}]
                 }
-                st_echarts(options=radar_opts, height="400px")
+                st_echarts(options=radar_opts, height="400px", theme="streamlit")
             
             download_csv(df_f, "data_kesejahteraan.csv")
 
@@ -255,7 +265,7 @@ elif menu == "Perekonomian & Inflasi":
                     "yAxis": {"type": "category", "data": df_latest['sektor'].tolist()[::-1], "axisLine": {"show": False}, "axisTick": {"show": False}},
                     "series": [{"type": "bar", "data": df_latest['nilai_adhb'].tolist()[::-1], "itemStyle": {"color": COLORS[0]}}]
                 }
-                bar_click = st_echarts(options=bar_opts, height="400px", key="pdrb_bar", on_select="rerun", selection_mode="points")
+                bar_click = st_echarts(options=bar_opts, height="400px", key="pdrb_bar", on_select="rerun", selection_mode="points", theme="streamlit")
                 
             with c_line:
                 sel_sektor = df_latest.iloc[0]['sektor']
@@ -268,16 +278,16 @@ elif menu == "Perekonomian & Inflasi":
                     "title": {"text": f"Tren ADHB: {sel_sektor}", "textStyle": {"fontSize": 14}},
                     "tooltip": {"trigger": "axis", "formatter": FMT_ID},
                     "xAxis": {"type": "category", "data": df_tren['tahun'].astype(int).astype(str).tolist()},
-                    "yAxis": {"type": "value", "splitLine": {"lineStyle": {"color": "#eee"}}, "axisLabel": {"formatter": JsCode("function(v){return (v/1000000).toFixed(1) + ' T'}")}},
+                    "yAxis": {"type": "value", "axisLabel": {"formatter": JsCode("function(v){return (v/1000000).toFixed(1) + ' T'}")}},
                     "series": [{"type": "line", "smooth": True, "data": df_tren['nilai_adhb'].tolist(), "itemStyle": {"color": COLORS[1]}, "areaStyle": {"opacity": 0.1}, "symbolSize": 8}]
                 }
-                st_echarts(options=line_opts, height="400px")
+                st_echarts(options=line_opts, height="400px", theme="streamlit")
             
             download_csv(df_f, "data_pdrb.csv")
 
     with t_quad:
         if not df_f.empty:
-            st.markdown("""<div class='insight-box' style='border-left-color: #8E44AD;'>
+            st.markdown("""<div class='insight-box' style='border-left-color: #8B5CF6;'>
             <div class='insight-title'>📈 Analisis Kuadran Kinerja Sektoral</div>
             <div class='insight-text'>Sumbu X (Bawah): <b>Pangsa/Kontribusi</b>. Sumbu Y (Kiri): <b>Pertumbuhan</b>. Kuadran ini ditarik dari garis pusat Pertumbuhan PDRB Daerah secara makro.</div></div>""", unsafe_allow_html=True)
 
@@ -303,9 +313,7 @@ elif menu == "Perekonomian & Inflasi":
                     "trigger": "item", 
                     "formatter": JsCode("""
                         function(p){
-                            if(p.componentType === 'markLine') {
-                                return p.name + ': <b>' + Number(p.value).toFixed(2) + '%</b>';
-                            }
+                            if(p.componentType === 'markLine') { return p.name + ': <b>' + Number(p.value).toFixed(2) + '%</b>'; }
                             return '<b>' + p.data.name + '</b><br/>Pangsa: ' + p.data.value[0] + '%<br/>Growth: ' + p.data.value[1] + '%';
                         }
                     """)
@@ -317,7 +325,7 @@ elif menu == "Perekonomian & Inflasi":
                     "label": {"show": True, "formatter": "{b}", "position": "right", "fontSize": 11},
                     "markLine": {
                         "animation": False, 
-                        "lineStyle": {"type": "dashed", "color": "#7F8C8D"}, 
+                        "lineStyle": {"type": "dashed", "color": "#9CA3AF"}, 
                         "label": {"show": False}, 
                         "data": [
                             {"xAxis": avg_pangsa, "name": "Batas Pangsa"}, 
@@ -326,13 +334,13 @@ elif menu == "Perekonomian & Inflasi":
                     }
                 }]
             }
-            st_echarts(options=scatter_opts, height="450px")
+            st_echarts(options=scatter_opts, height="450px", theme="streamlit")
 
     with t_ew:
         if not df_f.empty:
-            st.markdown("""<div class='insight-box' style='border-left-color: #DC2626;'>
+            st.markdown("""<div class='insight-box' style='border-left-color: #EF4444;'>
             <div class='insight-title'>🚦 Heatmap Peringatan Dini (Early Warning)</div>
-            <div class='insight-text'>Area merah menunjukkan sektor yang sedang atau pernah mengalami kontraksi pertumbuhan.</div></div>""", unsafe_allow_html=True)
+            <div class='insight-text'>Area merah muda/gelap menunjukkan sektor yang sedang atau pernah mengalami kontraksi pertumbuhan.</div></div>""", unsafe_allow_html=True)
             
             df_piv = df_f.pivot(index='tahun', columns='sektor', values='nilai_adhk').pct_change() * 100
             df_piv = df_piv.dropna().reset_index()
@@ -347,10 +355,10 @@ elif menu == "Perekonomian & Inflasi":
                 "grid": {"top": "5%", "bottom": "15%", "left": "30%"},
                 "xAxis": {"type": "category", "data": years, "splitArea": {"show": True}},
                 "yAxis": {"type": "category", "data": sektors, "splitArea": {"show": True}},
-                "visualMap": {"min": -5, "max": 10, "calculable": True, "orient": "horizontal", "left": "center", "bottom": "0%", "inRange": {"color": ["#DC2626", "#FADBD8", "#1E3A8A"]}},
+                "visualMap": {"min": -5, "max": 10, "calculable": True, "orient": "horizontal", "left": "center", "bottom": "0%", "inRange": {"color": ["#EF4444", "#FEE2E2", "#3B82F6"]}},
                 "series": [{"type": "heatmap", "data": heat_data, "label": {"show": True, "formatter": JsCode("function(p){return p.data[2] + '%'}")}, "itemStyle": {"borderColor": "#fff", "borderWidth": 1}}]
             }
-            st_echarts(options=heat_opts, height="500px")
+            st_echarts(options=heat_opts, height="500px", theme="streamlit")
 
 elif menu == "Sektor Pertanian":
     st.title(":material/agriculture: Ketahanan Pangan Daerah")
@@ -368,10 +376,10 @@ elif menu == "Sektor Pertanian":
                 "tooltip": {"trigger": "axis", "axisPointer": {"type": "cross"}, "formatter": FMT_ID},
                 "legend": {"bottom": 0},
                 "xAxis": {"type": "category", "data": df_padi['tahun'].astype(int).astype(str).tolist()},
-                "yAxis": [{"type": "value", "name": "Ha", "splitLine": {"show":False}}, {"type": "value", "name": "Ton", "splitLine": {"lineStyle": {"color": "#eee"}}}],
-                "series": [{"name": "Luas Panen", "type": "bar", "data": df_padi['luas_panen'].tolist(), "itemStyle": {"color": "#D4E6F1"}}, {"name": "Produksi", "type": "line", "yAxisIndex": 1, "data": df_padi['produksi'].tolist(), "itemStyle": {"color": COLORS[2]}, "lineStyle": {"width": 3}}]
+                "yAxis": [{"type": "value", "name": "Ha"}, {"type": "value", "name": "Ton"}],
+                "series": [{"name": "Luas Panen", "type": "bar", "data": df_padi['luas_panen'].tolist(), "itemStyle": {"color": COLORS[0]}}, {"name": "Produksi", "type": "line", "yAxisIndex": 1, "data": df_padi['produksi'].tolist(), "itemStyle": {"color": COLORS[2]}, "lineStyle": {"width": 3}}]
             }
-            st_echarts(options=padi_opts, height="450px")
+            st_echarts(options=padi_opts, height="450px", theme="streamlit")
             
         with c_line:
             if not df_n.empty and 'ntp' in df_n.columns:
@@ -384,6 +392,6 @@ elif menu == "Sektor Pertanian":
                     "yAxis": {"type": "value", "scale": True},
                     "series": [{"name": "NTP", "type": "line", "data": df_n['ntp'].tolist(), "itemStyle": {"color": COLORS[4]}, "markLine": {"data": [{"yAxis": 100, "name": "Batas Sejahtera"}], "lineStyle": {"color": COLORS[3]}}}]
                 }
-                st_echarts(options=ntp_opts, height="450px")
+                st_echarts(options=ntp_opts, height="450px", theme="streamlit")
                 
         download_csv(df_f, "pertanian_tanahlaut.csv")
