@@ -149,20 +149,37 @@ section[data-testid="stSidebar"] .stSelectbox label, section[data-testid="stSide
 .sidebar-caption {{ text-align:center; font-size:0.78rem; color:{text_muted}; margin-top:4px; }}
 .nav-group-title {{ font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: {text_muted}; margin: 14px 0 4px 0; }}
 
-/* ---- Widget bawaan Streamlit: paksa ikut tema (BaseWeb tidak auto-ikut CSS var) ----
-   Pakai wildcard descendant (elemen *) dengan !important karena struktur DOM
-   internal BaseWeb Select bisa beda-beda antar versi Streamlit / lingkungan
-   deploy (lokal vs Streamlit Cloud) - dengan wildcard, seberapa pun dalamnya
-   nesting div/span di dalam kontrol select, warnanya tetap konsisten ikut tema. */
+/* ---- Widget bawaan Streamlit: paksa ikut tema ----
+   Streamlit punya DUA kemungkinan implementasi selectbox tergantung versi:
+   1) BaseWeb lama -> div[data-baseweb="select"]
+   2) React Aria Components (versi lebih baru, dipakai Streamlit Cloud saat
+      lokal masih versi lama) -> .react-aria-ComboBox / [data-rac] / role=combobox
+   Keduanya di-cover sekaligus dengan wildcard + !important supaya app tetap
+   konsisten temanya di lokal MAUPUN saat di-deploy, berapa pun versi Streamlit
+   yang terpasang di masing-masing environment. */
+
+/* -- BaseWeb (Streamlit versi lama) -- */
 div[data-baseweb="select"], div[data-baseweb="select"] * {{ background-color: {surface} !important; color: {text} !important; }}
 div[data-baseweb="select"] > div {{ border-color: {border} !important; }}
 div[data-baseweb="select"] svg {{ fill: {text_muted} !important; }}
 div[data-baseweb="popover"], div[data-baseweb="popover"] *,
-div[data-baseweb="menu"], div[data-baseweb="menu"] *,
-ul[role="listbox"], ul[role="listbox"] * {{ background-color: {surface} !important; color: {text} !important; }}
+div[data-baseweb="menu"], div[data-baseweb="menu"] * {{ background-color: {surface} !important; color: {text} !important; }}
 div[data-baseweb="popover"] {{ border: 1px solid {border} !important; }}
-li[role="option"]:hover, li[role="option"]:hover * {{ background-color: {stripe if dark else "rgba(37,99,235,0.08)"} !important; }}
-li[role="option"][aria-selected="true"], li[role="option"][aria-selected="true"] * {{ background-color: {"rgba(59,95,224,0.25)" if dark else "rgba(37,99,235,0.12)"} !important; color: {text} !important; font-weight: 600; }}
+
+/* -- React Aria Components (Streamlit versi baru) -- */
+[data-testid="stSelectbox"] [role="group"] {{ background-color: {surface} !important; border: 1px solid {border} !important; border-radius: 8px !important; }}
+[data-testid="stSelectbox"] [role="group"], [data-testid="stSelectbox"] [role="group"] * {{ color: {text} !important; }}
+[data-testid="stSelectbox"] input[role="combobox"] {{ background-color: transparent !important; color: {text} !important; }}
+[data-testid="stSelectbox"] input[role="combobox"]::placeholder {{ color: {text_muted} !important; }}
+[data-testid="stSelectbox"] button svg {{ fill: {text_muted} !important; }}
+[data-testid="stSelectbox"] [data-rac] {{ background-color: {surface} !important; }}
+
+/* -- Popup/listbox dropdown, apapun implementasinya -- */
+[role="listbox"], [role="listbox"] * {{ background-color: {surface} !important; color: {text} !important; }}
+[role="listbox"] {{ border: 1px solid {border} !important; border-radius: 8px !important; }}
+[role="option"]:hover, [role="option"]:hover * {{ background-color: {stripe if dark else "rgba(37,99,235,0.08)"} !important; }}
+[role="option"][aria-selected="true"], [role="option"][aria-selected="true"] * {{ background-color: {"rgba(59,95,224,0.25)" if dark else "rgba(37,99,235,0.12)"} !important; color: {text} !important; font-weight: 600; }}
+
 .stButton > button, .stDownloadButton > button {{ background-color: {surface} !important; color: {text} !important; border: 1px solid {border} !important; box-shadow: {shadow}; }}
 .stButton > button:hover, .stDownloadButton > button:hover {{ border-color: {PRIMARY} !important; }}
 .stButton > button p, .stDownloadButton > button p {{ color: inherit !important; }}
