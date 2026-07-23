@@ -20,6 +20,7 @@ import numpy as np
 import json
 import os
 import html
+import base64
 import datetime
 from streamlit_echarts import st_echarts, JsCode, Map
 
@@ -38,6 +39,7 @@ PRIMARY = "#1E40AF"
 ACCENT = "#F59E0B"
 COLORS = ["#2563EB", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6"]
 GEOJSON_PATH = "tanah_laut.geojson"
+LOGO_PATH = "bps.png"
 
 REQUIRED_COLUMNS = {
     "Demografi": ["kecamatan", "tahun", "jumlah_penduduk", "lk", "pr", "kepadatan"],
@@ -125,11 +127,13 @@ h1, h2, h3, h4, p, label, span, .stMarkdown {{ color: {text}; }}
 
 /* ---- Tabel kustom ---- */
 .custom-table {{ width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.88em; border-radius: 8px; overflow: hidden; box-shadow: {shadow}; }}
-.custom-table thead tr {{ background-color: {PRIMARY}; color: #ffffff !important; text-align: left; }}
+.custom-table thead tr {{ background-color: {PRIMARY}; text-align: left; }}
 .custom-table th, .custom-table td {{ padding: 9px 14px; color: {text}; }}
+.custom-table thead th {{ color: #FFFFFF !important; }}
 .custom-table tbody tr {{ border-bottom: 1px solid {border}; }}
 .custom-table tbody tr:nth-of-type(even) {{ background-color: {stripe}; }}
 .custom-table tbody tr:last-of-type {{ border-bottom: 2px solid {PRIMARY}; }}
+div[data-testid="column"] .stButton > button {{ padding: 0.25rem 0.6rem; font-size: 0.82rem; }}
 
 .data-error {{ background-color: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-left: 4px solid #EF4444; padding: 12px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 0.86rem; }}
 .data-info {{ background-color: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.2); border-left: 4px solid {PRIMARY}; padding: 10px 16px; border-radius: 8px; margin-bottom: 14px; font-size: 0.85rem; }}
@@ -138,9 +142,52 @@ h1, h2, h3, h4, p, label, span, .stMarkdown {{ color: {text}; }}
 /* ---- Sidebar polish ---- */
 section[data-testid="stSidebar"] .stSelectbox label, section[data-testid="stSidebar"] .stSlider label {{ font-weight: 700; font-size: 0.82rem; }}
 .sidebar-brand {{ text-align:center; padding: 4px 0 14px 0; }}
-.sidebar-brand img {{ background:#FFFFFF; padding:10px; border-radius:10px; box-shadow: {shadow}; }}
-.sidebar-caption {{ text-align:center; font-size:0.78rem; color:{text_muted}; margin-top:8px; }}
+.logo-badge {{ width: 60px; height: 60px; margin: 0 auto; border-radius: 16px; background: linear-gradient(135deg, {PRIMARY} 0%, #3B5FE0 100%); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 1.15rem; letter-spacing: 0.5px; box-shadow: 0 6px 16px rgba(30,64,175,0.35); }}
+.logo-img {{ width: 64px; height: 64px; object-fit: contain; background: #FFFFFF; border-radius: 16px; padding: 8px; box-shadow: 0 6px 16px rgba(30,64,175,0.2); display: block; margin: 0 auto; }}
+.logo-caption {{ font-size: 0.86rem; font-weight: 700; color: {text}; margin-top: 8px; }}
+.sidebar-caption {{ text-align:center; font-size:0.78rem; color:{text_muted}; margin-top:4px; }}
 .nav-group-title {{ font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: {text_muted}; margin: 14px 0 4px 0; }}
+
+/* ---- Widget bawaan Streamlit: paksa ikut tema (BaseWeb tidak auto-ikut CSS var) ---- */
+div[data-baseweb="select"] > div {{ background-color: {surface} !important; border-color: {border} !important; color: {text} !important; }}
+div[data-baseweb="select"] input {{ color: {text} !important; }}
+div[data-baseweb="select"] svg {{ fill: {text_muted} !important; }}
+div[data-baseweb="popover"] ul[role="listbox"], div[data-baseweb="menu"] {{ background-color: {surface} !important; border: 1px solid {border} !important; }}
+li[role="option"] {{ background-color: {surface} !important; color: {text} !important; }}
+li[role="option"]:hover {{ background-color: {stripe} !important; }}
+.stButton > button, .stDownloadButton > button {{ background-color: {surface} !important; color: {text} !important; border: 1px solid {border} !important; box-shadow: {shadow}; }}
+.stButton > button:hover, .stDownloadButton > button:hover {{ border-color: {PRIMARY} !important; }}
+.stButton > button p, .stDownloadButton > button p {{ color: inherit !important; }}
+div[data-testid="stSlider"] [data-testid="stTickBarMin"], div[data-testid="stSlider"] [data-testid="stTickBarMax"] {{ color: {text_muted} !important; }}
+.stRadio label p, .stRadio div[role="radiogroup"] label {{ color: {text} !important; }}
+[data-testid="stWidgetLabel"] p {{ color: {text} !important; }}
+
+/* ---- Tombol collapse/expand sidebar: kontras kurang di mode terang ----
+   Pakai partial-match [data-testid*="ollaps"] karena nama testid berbeda
+   antar versi Streamlit (stSidebarCollapseButton / stSidebarCollapsedControl /
+   collapsedControl, dst) - ini menyapu semua variasinya. */
+[data-testid*="ollaps" i] {{ color: {"#E5E7EB" if dark else "#334155"} !important; }}
+[data-testid*="ollaps" i] svg {{ fill: {"#E5E7EB" if dark else "#334155"} !important; stroke: {"#E5E7EB" if dark else "#334155"} !important; }}
+[data-testid*="ollaps" i] button {{
+    background-color: {surface} !important; border: 1.5px solid {border} !important; border-radius: 8px !important;
+    box-shadow: {shadow};
+}}
+[data-testid*="ollaps" i] button:hover {{ border-color: {PRIMARY} !important; }}
+[data-testid*="ollaps" i] button:hover svg {{ fill: {PRIMARY} !important; stroke: {PRIMARY} !important; }}
+
+/* Streamlit versi baru pakai Material Symbols (font ligature, bukan svg) untuk
+   ikon expand/collapse sidebar - disasar langsung lewat stIconMaterial */
+[data-testid="stExpandSidebarButton"], [data-testid="stExpandSidebarButton"] *,
+[data-testid="stCollapseSidebarButton"], [data-testid="stCollapseSidebarButton"] *,
+[data-testid="stSidebarCollapseButton"], [data-testid="stSidebarCollapseButton"] *,
+[data-testid="stIconMaterial"] {{
+    color: {"rgba(250,250,250,0.9)" if dark else "#334155"} !important;
+}}
+[data-testid="stExpandSidebarButton"]:hover [data-testid="stIconMaterial"],
+[data-testid="stCollapseSidebarButton"]:hover [data-testid="stIconMaterial"],
+[data-testid="stSidebarCollapseButton"]:hover [data-testid="stIconMaterial"] {{
+    color: {PRIMARY} !important;
+}}
 </style>
 """,
         unsafe_allow_html=True,
@@ -251,6 +298,16 @@ def load_geojson():
     return None
 
 
+@st.cache_resource(show_spinner=False)
+def load_logo_base64():
+    """Baca bps.png (harus sejajar dengan app.py) dan encode ke base64
+    supaya bisa ditampilkan tanpa request eksternal. None jika file tidak ada."""
+    if os.path.exists(LOGO_PATH):
+        with open(LOGO_PATH, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    return None
+
+
 def apply_filter(df: pd.DataFrame, year_range):
     if df.empty or "tahun" not in df.columns:
         return df
@@ -301,22 +358,68 @@ def panel_title(title: str, subtitle: str = ""):
     _html(f"<div class='panel-title'>{html.escape(title)}</div>", sub)
 
 
-def render_custom_table(df: pd.DataFrame):
+def render_custom_table(df: pd.DataFrame, key: str = "tbl", page_size: int = 10):
     if df.empty:
         st.info("Tidak ada data untuk ditampilkan pada rentang/filter ini.")
         return
-    thead = "".join(f"<th>{html.escape(str(c))}</th>" for c in df.columns)
+
+    total_rows = len(df)
+    total_pages = max(1, -(-total_rows // page_size))  # ceil div
+    state_key = f"page_{key}"
+    if state_key not in st.session_state:
+        st.session_state[state_key] = 1
+    # clamp jika data berubah (mis. filter tahun/kecamatan diganti) sehingga halaman lama tidak valid lagi
+    st.session_state[state_key] = max(1, min(st.session_state[state_key], total_pages))
+    current_page = st.session_state[state_key]
+
+    start = (current_page - 1) * page_size
+    end = min(start + page_size, total_rows)
+    df_page = df.iloc[start:end]
+
+    thead = "".join(f"<th>{html.escape(str(c))}</th>" for c in df_page.columns)
     rows = []
-    for _, row in df.iterrows():
+    for _, row in df_page.iterrows():
         cells = []
-        for val in row:
-            text = fmt_id(val, 2) if isinstance(val, float) else str(val)
+        for col_name, val in zip(df_page.columns, row):
+            is_tahun_col = str(col_name).strip().lower() == "tahun"
+            if pd.isna(val):
+                text = "-"
+            elif is_tahun_col and isinstance(val, (int, float, np.integer, np.floating)):
+                text = str(int(val))  # kolom tahun: bilangan bulat polos, tanpa pemisah ribuan
+            elif isinstance(val, (int, np.integer)):
+                text = fmt_id(val, 0)
+            elif isinstance(val, (float, np.floating)):
+                # bilangan bulat (mis. 2020.0, 42633.0) ditampilkan tanpa koma;
+                # yang memang punya pecahan (mis. 4.16) tetap pakai koma desimal
+                text = fmt_id(val, 0) if float(val).is_integer() else fmt_id(val, 2)
+            else:
+                text = str(val)
             cells.append(f"<td>{html.escape(text)}</td>")
         rows.append("<tr>" + "".join(cells) + "</tr>")
     _html(f"<table class='custom-table'><thead><tr>{thead}</tr></thead><tbody>{''.join(rows)}</tbody></table>")
+
+    if total_pages > 1:
+        c_prev, c_info, c_next = st.columns([1, 3, 1])
+        with c_prev:
+            if st.button("⬅ Sebelumnya", key=f"prev_{key}", disabled=current_page <= 1, use_container_width=True):
+                st.session_state[state_key] -= 1
+                st.rerun()
+        with c_info:
+            _html(
+                f"<div style='text-align:center; padding-top:8px; font-size:0.85rem;'>"
+                f"Menampilkan <b>{start + 1}-{end}</b> dari <b>{total_rows}</b> baris &nbsp;·&nbsp; "
+                f"Halaman <b>{current_page}</b>/<b>{total_pages}</b></div>"
+            )
+        with c_next:
+            if st.button("Selanjutnya ➡", key=f"next_{key}", disabled=current_page >= total_pages, use_container_width=True):
+                st.session_state[state_key] += 1
+                st.rerun()
+    else:
+        _html(f"<div style='text-align:center; font-size:0.8rem; opacity:0.6; margin-bottom:6px;'>{total_rows} baris</div>")
+
     st.download_button(
-        "📥 Unduh CSV", data=df.to_csv(index=False).encode("utf-8"),
-        file_name="data_export.csv", mime="text/csv", use_container_width=True,
+        "📥 Unduh CSV (semua baris)", data=df.to_csv(index=False).encode("utf-8"),
+        file_name="data_export.csv", mime="text/csv", use_container_width=True, key=f"dl_{key}",
     )
 
 
@@ -335,13 +438,21 @@ def section_guard(label: str):
             return self
 
         def __exit__(self, exc_type, exc_val, exc_tb):
-            if exc_type is not None:
-                _html(
-                    f"<div class='data-error'>⚠️ Terjadi kendala saat memuat "
-                    f"<b>{html.escape(label)}</b>: {html.escape(str(exc_val))}</div>"
-                )
-                return True
-            return False
+            if exc_type is None:
+                return False
+            # PENTING: st.rerun() / st.stop() bekerja dengan melempar exception
+            # internal milik Streamlit sendiri (mis. RerunException) yang HARUS
+            # diteruskan, bukan ditangkap di sini - kalau ikut ditelan, rerun jadi
+            # gagal dan halaman ke-render dalam state yang tidak konsisten
+            # (persis gejala tombol/pager hilang setelah diklik).
+            module = getattr(exc_type, "__module__", "") or ""
+            if module.startswith("streamlit"):
+                return False
+            _html(
+                f"<div class='data-error'>⚠️ Terjadi kendala saat memuat "
+                f"<b>{html.escape(label)}</b>: {html.escape(str(exc_val))}</div>"
+            )
+            return True
 
     return _Guard()
 
@@ -350,14 +461,23 @@ def section_guard(label: str):
 # 6. SIDEBAR
 # ==============================================================================
 with st.sidebar:
-    _html(
-        "<div class='sidebar-brand'>",
-        '<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/'
-        "Logo_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg/512px-Logo_Badan_Pusat_Statistik_%28BPS%29_Indonesia.svg.png"
-        '" width="100">',
-        "<div class='sidebar-caption'>tanahlautkab.bps.go.id</div>",
-        "</div>",
-    )
+    logo_b64 = load_logo_base64()
+    if logo_b64:
+        _html(
+            "<div class='sidebar-brand'>",
+            f"<img class='logo-img' src='data:image/png;base64,{logo_b64}'>",
+            "<div class='logo-caption'>Kabupaten Tanah Laut</div>",
+            "<div class='sidebar-caption'>tanahlautkab.bps.go.id</div>",
+            "</div>",
+        )
+    else:
+        _html(
+            "<div class='sidebar-brand'>",
+            "<div class='logo-badge'>BPS</div>",
+            "<div class='logo-caption'>Kabupaten Tanah Laut</div>",
+            "<div class='sidebar-caption'>tanahlautkab.bps.go.id</div>",
+            "</div>",
+        )
 
     tema_gelap = st.toggle("🌙 Mode Gelap", value=False)
     e_theme = "dark" if tema_gelap else "light"
@@ -574,7 +694,7 @@ elif sub_kategori == "Kependudukan":
                 df_disp = df_target[["tahun", "jumlah_penduduk", "lk", "pr", "kepadatan"]].rename(
                     columns={"tahun": "Tahun", "jumlah_penduduk": "Total Penduduk", "lk": "Laki-laki", "pr": "Perempuan", "kepadatan": "Kepadatan"}
                 )
-                render_custom_table(df_disp.sort_values("Tahun", ascending=False))
+                render_custom_table(df_disp.sort_values("Tahun", ascending=False), key="kependudukan")
 
 elif sub_kategori == "Tenaga Kerja":
     page_header("💼", "Pasar Tenaga Kerja", breadcrumb_path)
@@ -597,7 +717,7 @@ elif sub_kategori == "Tenaga Kerja":
                         "series": [{"type": "line", "data": df_kab["tpt"].tolist(), "smooth": True, "itemStyle": {"color": "#EF4444"}, "lineStyle": {"width": 3}, "areaStyle": {"opacity": 0.08}}],
                     }
                     st_echarts(options=line_opts, height="380px", theme=e_theme)
-                render_custom_table(df_kab[["tahun", "tpt"]].rename(columns={"tahun": "Tahun", "tpt": "TPT (%)"}).sort_values("Tahun", ascending=False))
+                render_custom_table(df_kab[["tahun", "tpt"]].rename(columns={"tahun": "Tahun", "tpt": "TPT (%)"}).sort_values("Tahun", ascending=False), key="tenaga_kerja")
 
 elif sub_kategori == "Kemiskinan":
     page_header("📉", "Kerentanan Sosial & Kesejahteraan", breadcrumb_path)
@@ -624,7 +744,7 @@ elif sub_kategori == "Kemiskinan":
                     st_echarts(options=dual_opts, height="420px", theme=e_theme)
             with c2:
                 df_disp = df_k[["tahun", "p0", "jml_miskin", "garis_kemiskinan"]].rename(columns={"tahun": "Tahun", "p0": "P0 (%)", "jml_miskin": "Jumlah (Jiwa)", "garis_kemiskinan": "Garis Kemiskinan (Rp)"})
-                render_custom_table(df_disp.sort_values("Tahun", ascending=False))
+                render_custom_table(df_disp.sort_values("Tahun", ascending=False), key="kemiskinan")
 
 elif sub_kategori == "Inflasi":
     page_header("🛒", "Analisis Volatilitas Harga (Inflasi)", breadcrumb_path)
@@ -649,7 +769,7 @@ elif sub_kategori == "Inflasi":
                     ],
                 }
                 st_echarts(options=inf_opts, height="420px", theme=e_theme)
-            render_custom_table(df_i[["periode", "inflasi_yoy", "inflasi_mtm"]].rename(columns={"periode": "Periode", "inflasi_yoy": "YoY (%)", "inflasi_mtm": "MtM (%)"}))
+            render_custom_table(df_i[["periode", "inflasi_yoy", "inflasi_mtm"]].rename(columns={"periode": "Periode", "inflasi_yoy": "YoY (%)", "inflasi_mtm": "MtM (%)"}), key="inflasi")
 
 elif sub_kategori == "Pertumbuhan Ekonomi":
     page_header("📈", "Akselerasi Ekonomi Daerah", breadcrumb_path)
@@ -686,7 +806,7 @@ elif sub_kategori == "Pertumbuhan Ekonomi":
                 with c2:
                     df_disp = df_pe[["tahun", "pe_tala", "pe_kalsel"]].rename(columns={"tahun": "Tahun", "pe_tala": "Tala (%)", "pe_kalsel": "Kalsel (%)"})
                     df_disp["Tahun"] = df_disp["Tahun"].astype(str)
-                    render_custom_table(df_disp.sort_values("Tahun", ascending=False))
+                    render_custom_table(df_disp.sort_values("Tahun", ascending=False), key="pe")
 
 elif sub_kategori == "Struktur PDRB":
     page_header("💰", "Matriks Sektoral Lapangan Usaha", breadcrumb_path)
@@ -834,6 +954,6 @@ elif sub_kategori == "Ketahanan Pangan & NTP":
 
             if not df_padi.empty:
                 df_disp = df_padi[["tahun", "luas_panen", "produksi"]].rename(columns={"tahun": "Tahun", "luas_panen": "Luas Panen (Ha)", "produksi": "Produksi (Ton)"})
-                render_custom_table(df_disp.sort_values("Tahun", ascending=False))
+                render_custom_table(df_disp.sort_values("Tahun", ascending=False), key="pertanian")
 
 _html("<div class='footer-note'>Sumber: BPS Kabupaten Tanah Laut · Data disinkronkan otomatis setiap 1 jam</div>")
