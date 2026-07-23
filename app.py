@@ -29,7 +29,7 @@ from streamlit_echarts import st_echarts, JsCode, Map
 # ==============================================================================
 st.set_page_config(
     page_title="Dashboard Data Strategis BPS Tanah Laut",
-    page_icon="📊",
+    page_icon="bps.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -85,6 +85,7 @@ def inject_css(dark: bool):
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+:root {{ color-scheme: {"dark" if dark else "light"} !important; }}
 html, body, [class*="css"] {{ font-family: 'Inter', -apple-system, sans-serif !important; }}
 #MainMenu, footer {{visibility: hidden;}}
 [data-testid="stHeader"] {{background-color: transparent !important;}}
