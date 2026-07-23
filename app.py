@@ -148,13 +148,20 @@ section[data-testid="stSidebar"] .stSelectbox label, section[data-testid="stSide
 .sidebar-caption {{ text-align:center; font-size:0.78rem; color:{text_muted}; margin-top:4px; }}
 .nav-group-title {{ font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: {text_muted}; margin: 14px 0 4px 0; }}
 
-/* ---- Widget bawaan Streamlit: paksa ikut tema (BaseWeb tidak auto-ikut CSS var) ---- */
-div[data-baseweb="select"] > div {{ background-color: {surface} !important; border-color: {border} !important; color: {text} !important; }}
-div[data-baseweb="select"] input {{ color: {text} !important; }}
+/* ---- Widget bawaan Streamlit: paksa ikut tema (BaseWeb tidak auto-ikut CSS var) ----
+   Pakai wildcard descendant (elemen *) dengan !important karena struktur DOM
+   internal BaseWeb Select bisa beda-beda antar versi Streamlit / lingkungan
+   deploy (lokal vs Streamlit Cloud) - dengan wildcard, seberapa pun dalamnya
+   nesting div/span di dalam kontrol select, warnanya tetap konsisten ikut tema. */
+div[data-baseweb="select"], div[data-baseweb="select"] * {{ background-color: {surface} !important; color: {text} !important; }}
+div[data-baseweb="select"] > div {{ border-color: {border} !important; }}
 div[data-baseweb="select"] svg {{ fill: {text_muted} !important; }}
-div[data-baseweb="popover"] ul[role="listbox"], div[data-baseweb="menu"] {{ background-color: {surface} !important; border: 1px solid {border} !important; }}
-li[role="option"] {{ background-color: {surface} !important; color: {text} !important; }}
-li[role="option"]:hover {{ background-color: {stripe} !important; }}
+div[data-baseweb="popover"], div[data-baseweb="popover"] *,
+div[data-baseweb="menu"], div[data-baseweb="menu"] *,
+ul[role="listbox"], ul[role="listbox"] * {{ background-color: {surface} !important; color: {text} !important; }}
+div[data-baseweb="popover"] {{ border: 1px solid {border} !important; }}
+li[role="option"]:hover, li[role="option"]:hover * {{ background-color: {stripe if dark else "rgba(37,99,235,0.08)"} !important; }}
+li[role="option"][aria-selected="true"], li[role="option"][aria-selected="true"] * {{ background-color: {"rgba(59,95,224,0.25)" if dark else "rgba(37,99,235,0.12)"} !important; color: {text} !important; font-weight: 600; }}
 .stButton > button, .stDownloadButton > button {{ background-color: {surface} !important; color: {text} !important; border: 1px solid {border} !important; box-shadow: {shadow}; }}
 .stButton > button:hover, .stDownloadButton > button:hover {{ border-color: {PRIMARY} !important; }}
 .stButton > button p, .stDownloadButton > button p {{ color: inherit !important; }}
@@ -275,7 +282,7 @@ def fetch_data(sheet_name: str):
         df = df.dropna(subset=["tahun"])
         df["tahun"] = df["tahun"].astype(int)
 
-    text_cols = {"kecamatan", "sektor", "komoditas", "bulan"}
+    text_cols = {"kecamatan", "sektor", "komoditas", "bulan", "tahun"}
     for col in df.columns:
         if col not in text_cols:
             df[col] = df[col].apply(clean_numeric)
