@@ -34,10 +34,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-SHEET_ID = "1nQh8AezWpM8TfsaknlNO922yqqBWWBfDKah4fm9tpHU"
-PRIMARY = "#1E40AF"
+SHEET_ID = st.secrets.get("SHEET_ID")
+PRIMARY = "#4F46E5"
+SECONDARY = "#7C3AED"
 ACCENT = "#F59E0B"
-COLORS = ["#2563EB", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6"]
+COLORS = ["#4F46E5", "#F59E0B", "#10B981", "#EC4899", "#06B6D4"]
+CARD_ACCENTS = ["#4F46E5", "#F59E0B", "#EC4899", "#06B6D4", "#10B981"]
 GEOJSON_PATH = "tanah_laut.geojson"
 LOGO_PATH = "bps.png"
 
@@ -98,9 +100,9 @@ h1, h2, h3, h4, p, label, span, .stMarkdown {{ color: {text}; }}
 
 /* ---- Hero header per halaman ---- */
 .app-hero {{
-    background: linear-gradient(120deg, {PRIMARY} 0%, #3B5FE0 100%);
+    background: linear-gradient(120deg, {PRIMARY} 0%, {SECONDARY} 55%, #DB2777 100%);
     border-radius: 14px; padding: 22px 28px; margin-bottom: 22px;
-    box-shadow: 0 8px 24px rgba(30,64,175,0.25);
+    box-shadow: 0 8px 24px rgba(79,70,229,0.28);
 }}
 .app-hero .breadcrumb {{ color: rgba(255,255,255,0.75); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 4px; }}
 .app-hero .title {{ color: #FFFFFF; font-size: 1.55rem; font-weight: 800; line-height: 1.25; margin: 0; }}
@@ -143,10 +145,12 @@ div[data-testid="column"] .stButton > button {{ padding: 0.25rem 0.6rem; font-si
 /* ---- Sidebar polish ---- */
 section[data-testid="stSidebar"] .stSelectbox label, section[data-testid="stSidebar"] .stSlider label {{ font-weight: 700; font-size: 0.82rem; }}
 .sidebar-brand {{ text-align:center; padding: 4px 0 14px 0; }}
-.logo-badge {{ width: 60px; height: 60px; margin: 0 auto; border-radius: 16px; background: linear-gradient(135deg, {PRIMARY} 0%, #3B5FE0 100%); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 1.15rem; letter-spacing: 0.5px; box-shadow: 0 6px 16px rgba(30,64,175,0.35); }}
+.logo-badge {{ width: 60px; height: 60px; margin: 0 auto; border-radius: 16px; background: linear-gradient(135deg, {PRIMARY} 0%, {SECONDARY} 100%); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 800; font-size: 1.15rem; letter-spacing: 0.5px; box-shadow: 0 6px 16px rgba(79,70,229,0.35); }}
 .logo-img {{ width: 64px; height: 64px; object-fit: contain; background: #FFFFFF; border-radius: 16px; padding: 8px; box-shadow: 0 6px 16px rgba(30,64,175,0.2); display: block; margin: 0 auto; }}
 .logo-caption {{ font-size: 0.86rem; font-weight: 700; color: {text}; margin-top: 8px; }}
 .sidebar-caption {{ text-align:center; font-size:0.78rem; color:{text_muted}; margin-top:4px; }}
+a.sidebar-link {{ display:block; text-decoration:none !important; }}
+a.sidebar-link:hover {{ color:{PRIMARY} !important; text-decoration:underline !important; }}
 .nav-group-title {{ font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: {text_muted}; margin: 14px 0 4px 0; }}
 
 /* ---- Widget bawaan Streamlit: paksa ikut tema ----
@@ -186,6 +190,28 @@ div[data-baseweb="popover"] {{ border: 1px solid {border} !important; }}
 div[data-testid="stSlider"] [data-testid="stTickBarMin"], div[data-testid="stSlider"] [data-testid="stTickBarMax"] {{ color: {text_muted} !important; }}
 .stRadio label p, .stRadio div[role="radiogroup"] label {{ color: {text} !important; }}
 [data-testid="stWidgetLabel"] p {{ color: {text} !important; }}
+
+/* ---- Expander (mis. "Kamus Istilah") - belum pernah di-cover sebelumnya,
+   makanya headernya masih pakai warna gelap default Streamlit walau app
+   sedang light mode. */
+[data-testid="stExpander"] {{ background-color: {surface} !important; border: 1px solid {border} !important; border-radius: 10px !important; overflow: hidden; }}
+[data-testid="stExpander"] summary {{ background-color: {surface} !important; }}
+[data-testid="stExpander"] summary:hover {{ background-color: {stripe} !important; }}
+[data-testid="stExpander"] summary p, [data-testid="stExpander"] summary span {{ color: {text} !important; }}
+[data-testid="stExpander"] summary svg {{ fill: {text_muted} !important; }}
+[data-testid="stExpanderDetails"] {{ background-color: {surface} !important; color: {text} !important; }}
+
+/* ---- Tooltip (dari parameter help= pada tombol/widget) - belum pernah
+   di-cover, makanya muncul kotak hitam aneh saat hover apapun tema-nya.
+   Pakai role="tooltip" DAN partial-match data-testid karena implementasinya
+   ternyata beda lagi antar versi Streamlit (pola yang sama seperti kasus
+   tombol collapse sidebar sebelumnya). */
+[role="tooltip"], [role="tooltip"] *,
+[data-testid*="ooltip" i], [data-testid*="ooltip" i] * {{
+    background-color: {"#1F2937" if not dark else "#F9FAFB"} !important;
+    color: {"#F9FAFB" if not dark else "#1F2937"} !important;
+}}
+[role="tooltip"], [data-testid*="ooltip" i] {{ border-radius: 6px !important; font-size: 0.8rem !important; border: none !important; }}
 
 /* ---- Tombol collapse/expand sidebar: kontras kurang di mode terang ----
    Pakai partial-match [data-testid*="ollaps"] karena nama testid berbeda
@@ -353,15 +379,16 @@ def page_header(icon: str, title: str, breadcrumb: str, subtitle: str = ""):
     )
 
 
-def metric_card(col, icon: str, label: str, value: str, trend: str = None, trend_dir: str = "flat"):
+def metric_card(col, icon: str, label: str, value: str, trend: str = None, trend_dir: str = "flat", accent: str = None):
     trend_html = ""
     if trend:
         cls = {"up": "m-up", "down": "m-down", "flat": "m-flat"}.get(trend_dir, "m-flat")
         arrow = {"up": "▲", "down": "▼", "flat": "▬"}.get(trend_dir, "▬")
         trend_html = f"<div class='m-trend {cls}'>{arrow} {html.escape(trend)}</div>"
+    style = f" style='border-left-color:{accent};'" if accent else ""
     with col:
         _html(
-            "<div class='metric-card'>",
+            f"<div class='metric-card'{style}>",
             f"<div class='m-top'><span class='m-icon'>{icon}</span>"
             f"<span class='m-label'>{html.escape(label)}</span></div>",
             f"<div><div class='m-value'>{html.escape(value)}</div>{trend_html}</div>",
@@ -424,19 +451,19 @@ def render_custom_table(df: pd.DataFrame, key: str = "tbl", page_size: int = 10)
     _html(f"<table class='custom-table'><thead><tr>{thead}</tr></thead><tbody>{''.join(rows)}</tbody></table>")
 
     if total_pages > 1:
-        c_prev, c_info, c_next = st.columns([1, 3, 1])
+        c_prev, c_info, c_next = st.columns([1, 5, 1])
         with c_prev:
-            if st.button("⬅ Sebelumnya", key=f"prev_{key}", disabled=current_page <= 1, use_container_width=True):
+            if st.button("◀", key=f"prev_{key}", disabled=current_page <= 1, use_container_width=True):
                 st.session_state[state_key] -= 1
                 st.rerun()
         with c_info:
             _html(
-                f"<div style='text-align:center; padding-top:8px; font-size:0.85rem;'>"
-                f"Menampilkan <b>{start + 1}-{end}</b> dari <b>{total_rows}</b> baris &nbsp;·&nbsp; "
-                f"Halaman <b>{current_page}</b>/<b>{total_pages}</b></div>"
+                f"<div style='text-align:center; padding-top:8px; font-size:0.85rem; white-space:nowrap;'>"
+                f"Baris <b>{start + 1}-{end}</b> dari <b>{total_rows}</b> &nbsp;·&nbsp; "
+                f"Hal. <b>{current_page}</b>/<b>{total_pages}</b></div>"
             )
         with c_next:
-            if st.button("Selanjutnya ➡", key=f"next_{key}", disabled=current_page >= total_pages, use_container_width=True):
+            if st.button("▶", key=f"next_{key}", disabled=current_page >= total_pages, use_container_width=True):
                 st.session_state[state_key] += 1
                 st.rerun()
     else:
@@ -492,7 +519,7 @@ with st.sidebar:
             "<div class='sidebar-brand'>",
             f"<img class='logo-img' src='data:image/png;base64,{logo_b64}'>",
             "<div class='logo-caption'>Kabupaten Tanah Laut</div>",
-            "<div class='sidebar-caption'>tanahlautkab.bps.go.id</div>",
+            "<a class='sidebar-caption sidebar-link' href='https://tanahlautkab.bps.go.id' target='_blank' rel='noopener noreferrer'>tanahlautkab.bps.go.id</a>",
             "</div>",
         )
     else:
@@ -500,7 +527,7 @@ with st.sidebar:
             "<div class='sidebar-brand'>",
             "<div class='logo-badge'>BPS</div>",
             "<div class='logo-caption'>Kabupaten Tanah Laut</div>",
-            "<div class='sidebar-caption'>tanahlautkab.bps.go.id</div>",
+            "<a class='sidebar-caption sidebar-link' href='https://tanahlautkab.bps.go.id' target='_blank' rel='noopener noreferrer'>tanahlautkab.bps.go.id</a>",
             "</div>",
         )
 
@@ -529,6 +556,7 @@ with st.sidebar:
     df_demo_bounds, err_bounds = fetch_data("Demografi")
     if err_bounds or df_demo_bounds.empty:
         min_year, curr_year = 2010, datetime.datetime.now().year
+        st.caption(f"⚠️ Rentang tahun pakai default ({min_year}-{curr_year}): {err_bounds or 'data kosong'}")
     else:
         min_year = int(df_demo_bounds["tahun"].min())
         curr_year = int(df_demo_bounds["tahun"].max())
@@ -542,6 +570,16 @@ with st.sidebar:
     else:
         list_kecamatan = ["Semua Kecamatan"]
     filter_kec = st.selectbox("Kecamatan", list_kecamatan, label_visibility="collapsed")
+
+    with st.expander("ℹ️ Kamus Istilah"):
+        st.caption(
+            "**TPT** — Tingkat Pengangguran Terbuka: persentase penduduk usia kerja yang menganggur.\n\n"
+            "**P0** — Persentase penduduk miskin terhadap total penduduk.\n\n"
+            "**ADHB / ADHK** — PDRB Atas Dasar Harga Berlaku / Konstan: nilai ekonomi dengan harga saat "
+            "ini (ADHB) vs harga tahun dasar untuk mengukur pertumbuhan riil (ADHK).\n\n"
+            "**NTP** — Nilai Tukar Petani: rasio harga jual hasil pertanian terhadap harga barang yang "
+            "dibeli petani. NTP > 100 berarti petani diuntungkan."
+        )
 
     st.markdown("---")
     if st.button("🔄 Refresh Data", use_container_width=True):
@@ -597,7 +635,7 @@ if kategori == "Dashboard Utama":
             c_inf = df_i.sort_values("tahun").iloc[-1]
 
             with st.container(border=True):
-                panel_title("🗺️ Sebaran Spasial", "Klik & geser untuk menjelajah peta kecamatan")
+                panel_title("🗺️ Sebaran Spasial", "Arahkan kursor ke tiap kecamatan untuk lihat detail")
                 geo_data = load_geojson()
                 warna_pilihan = st.radio(
                     "Warnai peta berdasarkan:", ["Jumlah Penduduk", "TPT", "% Penduduk Miskin"],
@@ -605,68 +643,69 @@ if kategori == "Dashboard Utama":
                 )
                 df_kec_now = df_d[(df_d["tahun"] == t_akhir) & (df_d["kecamatan"].str.lower() != "tanah laut")]
 
-                map_l, map_c, map_r = st.columns([1, 3, 1])
-                with map_c:
-                    if geo_data and not df_kec_now.empty:
-                        has_real_tpt = "tpt" in df_kec_now.columns and df_kec_now["tpt"].notna().any()
-                        has_real_miskin = "miskin" in df_kec_now.columns and df_kec_now["miskin"].notna().any()
+                if geo_data and not df_kec_now.empty:
+                    has_real_tpt = "tpt" in df_kec_now.columns and df_kec_now["tpt"].notna().any()
+                    has_real_miskin = "miskin" in df_kec_now.columns and df_kec_now["miskin"].notna().any()
 
-                        map_data = []
-                        for _, r in df_kec_now.iterrows():
-                            pddk = r["jumlah_penduduk"] if pd.notna(r["jumlah_penduduk"]) else 0
-                            base_tpt = row_target_now.get("tpt", 4.5)
-                            base_tpt = base_tpt if pd.notna(base_tpt) else 4.5
-                            tpt_val = round(r["tpt"], 2) if has_real_tpt and pd.notna(r.get("tpt")) else round(base_tpt + (pddk % 3 - 1.5), 2)
-                            miskin_base = c_kes["p0"] if pd.notna(c_kes["p0"]) else 5.0
-                            miskin_val = round(r["miskin"], 2) if has_real_miskin and pd.notna(r.get("miskin")) else round(miskin_base + (pddk % 2 - 1.0), 2)
+                    map_data = []
+                    for _, r in df_kec_now.iterrows():
+                        pddk = r["jumlah_penduduk"] if pd.notna(r["jumlah_penduduk"]) else 0
+                        base_tpt = row_target_now.get("tpt", 4.5)
+                        base_tpt = base_tpt if pd.notna(base_tpt) else 4.5
+                        tpt_val = round(r["tpt"], 2) if has_real_tpt and pd.notna(r.get("tpt")) else round(base_tpt + (pddk % 3 - 1.5), 2)
+                        miskin_base = c_kes["p0"] if pd.notna(c_kes["p0"]) else 5.0
+                        miskin_val = round(r["miskin"], 2) if has_real_miskin and pd.notna(r.get("miskin")) else round(miskin_base + (pddk % 2 - 1.0), 2)
 
-                            value_map = {"Jumlah Penduduk": pddk, "TPT": tpt_val, "% Penduduk Miskin": miskin_val}
-                            map_data.append({
-                                "name": r["kecamatan"], "value": value_map[warna_pilihan],
-                                "pddk": pddk, "tpt": tpt_val, "miskin": miskin_val,
-                                "itemStyle": {"borderWidth": 2.5, "borderColor": ACCENT} if r["kecamatan"].lower() == target_kec else {},
-                            })
+                        value_map = {"Jumlah Penduduk": pddk, "TPT": tpt_val, "% Penduduk Miskin": miskin_val}
+                        map_data.append({
+                            "name": r["kecamatan"], "value": value_map[warna_pilihan],
+                            "pddk": pddk, "tpt": tpt_val, "miskin": miskin_val,
+                            "itemStyle": {"borderWidth": 2.5, "borderColor": ACCENT} if r["kecamatan"].lower() == target_kec else {},
+                        })
 
-                        if not (has_real_tpt or has_real_miskin) and warna_pilihan != "Jumlah Penduduk":
-                            st.caption("⚠️ Nilai TPT/kemiskinan per kecamatan disimulasikan (data riil per kecamatan belum tersedia).")
+                    if not (has_real_tpt or has_real_miskin) and warna_pilihan != "Jumlah Penduduk":
+                        st.caption("⚠️ Nilai TPT/kemiskinan per kecamatan disimulasikan (data riil per kecamatan belum tersedia).")
 
-                        vmin = min(d["value"] for d in map_data)
-                        vmax = max(d["value"] for d in map_data)
-                        map_opts = {
-                            "backgroundColor": "transparent",
-                            "tooltip": {"trigger": "item", "formatter": MAP_TOOLTIP},
-                            "visualMap": {
-                                "show": True, "min": vmin, "max": vmax, "left": "left", "bottom": "0%",
-                                "inRange": {"color": ["#DBEAFE", PRIMARY]},
-                                "textStyle": {"color": "#888"}, "calculable": True,
-                            },
-                            "series": [{
-                                "type": "map", "map": "TALA", "roam": True, "label": {"show": False},
-                                "emphasis": {"label": {"show": True}, "itemStyle": {"areaColor": ACCENT}},
-                                "data": map_data,
-                            }],
-                        }
-                        st_echarts(options=map_opts, map=Map("TALA", geo_data), height="380px", theme=e_theme)
-                    else:
-                        st.info("🗺️ Sistem spasial siap. Letakkan berkas `tanah_laut.geojson` sejajar dengan script.")
+                    vmin = min(d["value"] for d in map_data)
+                    vmax = max(d["value"] for d in map_data)
+                    map_opts = {
+                        "backgroundColor": "transparent",
+                        "tooltip": {"trigger": "item", "formatter": MAP_TOOLTIP},
+                        "visualMap": {
+                            "show": True, "min": vmin, "max": vmax, "left": "left", "bottom": "0%",
+                            "inRange": {"color": ["#DBEAFE", PRIMARY]},
+                            "textStyle": {"color": "#888"}, "calculable": True,
+                        },
+                        "series": [{
+                            # roam dimatikan sengaja - peta ini cuma untuk overview cepat, bukan
+                            # eksplorasi detail, jadi zoom/pan malah mengganggu (gampang ke-scroll
+                            # tanpa sengaja). Ukurannya diperbesar sebagai gantinya.
+                            "type": "map", "map": "TALA", "roam": False, "label": {"show": False},
+                            "emphasis": {"label": {"show": True}, "itemStyle": {"areaColor": ACCENT}},
+                            "data": map_data,
+                        }],
+                    }
+                    st_echarts(options=map_opts, map=Map("TALA", geo_data), height="560px", theme=e_theme)
+                else:
+                    st.info("🗺️ Sistem spasial siap. Letakkan berkas `tanah_laut.geojson` sejajar dengan script.")
 
             st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
             panel_title("📌 Overview Indikator Kunci")
 
             col1, col2, col3, col4, col5 = st.columns(5)
             t_pddk, t_pddk_dir = trend_info(row_target_now["jumlah_penduduk"], row_target_prev["jumlah_penduduk"] if row_target_prev is not None else None)
-            metric_card(col1, "👥", f"Jml. Penduduk · {label_wilayah}", fmt_id(row_target_now["jumlah_penduduk"]), t_pddk, t_pddk_dir)
+            metric_card(col1, "👥", f"Jml. Penduduk · {label_wilayah}", fmt_id(row_target_now["jumlah_penduduk"]), t_pddk, t_pddk_dir, accent=CARD_ACCENTS[0])
 
             tpt_val = row_target_now.get("tpt", np.nan)
-            metric_card(col2, "💼", f"TPT · {label_wilayah}", f"{tpt_val:g}%" if pd.notna(tpt_val) else "Data Kab.")
+            metric_card(col2, "💼", f"TPT · {label_wilayah}", f"{tpt_val:g}%" if pd.notna(tpt_val) else "Data Kab.", accent=CARD_ACCENTS[1])
 
             t_p0, t_p0_dir = trend_info(c_kes["p0"], c_kes_prev["p0"] if c_kes_prev is not None else None)
-            metric_card(col3, "📉", "% Pend. Miskin · Kab. Tala", f"{c_kes['p0']:g}%" if pd.notna(c_kes["p0"]) else "-", t_p0, t_p0_dir)
+            metric_card(col3, "📉", "% Pend. Miskin · Kab. Tala", f"{c_kes['p0']:g}%" if pd.notna(c_kes["p0"]) else "-", t_p0, t_p0_dir, accent=CARD_ACCENTS[2])
 
-            metric_card(col4, "🛒", "Inflasi (yoy) · Kab. Tala", f"{c_inf['inflasi_yoy']:g}%" if pd.notna(c_inf["inflasi_yoy"]) else "-")
+            metric_card(col4, "🛒", "Inflasi (yoy) · Kab. Tala", f"{c_inf['inflasi_yoy']:g}%" if pd.notna(c_inf["inflasi_yoy"]) else "-", accent=CARD_ACCENTS[3])
 
             pe_dir = "up" if pd.notna(pe_growth) and pe_growth > 0 else ("down" if pd.notna(pe_growth) and pe_growth < 0 else "flat")
-            metric_card(col5, "📈", "Pert. Ekonomi · Kab. Tala", f"{pe_growth:.2f}%" if pd.notna(pe_growth) else "-", None, pe_dir)
+            metric_card(col5, "📈", "Pert. Ekonomi · Kab. Tala", f"{pe_growth:.2f}%" if pd.notna(pe_growth) else "-", None, pe_dir, accent=CARD_ACCENTS[4])
 
             if pd.notna(pe_growth):
                 insight_box(
@@ -883,8 +922,7 @@ elif sub_kategori == "Analisis Portofolio & Early Warning":
         if df_p.empty:
             st.warning("Data PDRB tidak tersedia.")
         else:
-            c_quad, c_heat = st.columns([1.2, 1])
-            with c_quad:
+            with st.container(border=True):
                 t_akhir = int(df_p["tahun"].max())
                 df_now = df_p[df_p["tahun"] == t_akhir].copy()
                 df_prev = df_p[df_p["tahun"] == (t_akhir - 1)].copy()
@@ -898,44 +936,50 @@ elif sub_kategori == "Analisis Portofolio & Early Warning":
                     df_m["pangsa"] = (df_m["nilai_adhb_curr"] / tot_adhb) * 100
                     df_m["pertumbuhan"] = ((df_m["nilai_adhk_curr"] - df_m["nilai_adhk_prev"]) / df_m["nilai_adhk_prev"]) * 100
                     scat_data = [{"name": r["sektor"], "value": [round(r["pangsa"], 2), round(r["pertumbuhan"], 2)]} for _, r in df_m.iterrows()]
-                    with st.container(border=True):
-                        panel_title("Matriks Kinerja Kuadran BCG")
-                        scatter_opts = {
-                            "backgroundColor": "transparent",
-                            "tooltip": {"trigger": "item", "formatter": JsCode(
-                                "function(p){if(p.componentType==='markLine'){return p.name+': '+Number(p.value).toFixed(2)+'%';}"
-                                "return '<b>'+p.data.name+'</b><br/>Pangsa: '+p.data.value[0]+'%<br/>Growth: '+p.data.value[1]+'%';}"
-                            )},
-                            "xAxis": {"type": "value", "name": "Pangsa (%)", "nameLocation": "middle", "nameGap": 25},
-                            "yAxis": {"type": "value", "name": "Pertumbuhan (%)", "nameLocation": "middle", "nameGap": 30},
-                            "series": [{
-                                "type": "scatter", "symbolSize": 18, "itemStyle": {"color": COLORS[4], "opacity": 0.85},
-                                "data": scat_data, "label": {"show": True, "formatter": "{b}", "position": "right", "fontSize": 10},
-                                "markLine": {"animation": False, "lineStyle": {"type": "dashed", "color": "#7F8C8D"},
-                                             "data": [{"xAxis": avg_p, "name": "Batas Pangsa"}, {"yAxis": true_growth, "name": "Laju Daerah"}]},
-                            }],
-                        }
-                        st_echarts(options=scatter_opts, height="420px", theme=e_theme)
-            with c_heat:
-                if df_p["tahun"].nunique() < 2:
-                    st.info("Butuh minimal 2 tahun data untuk heatmap.")
-                else:
-                    df_piv = df_p.pivot_table(index="tahun", columns="sektor", values="nilai_adhk").pct_change() * 100
-                    df_piv = df_piv.dropna().reset_index()
-                    sektors = [c for c in df_piv.columns if c != "tahun"]
-                    years = df_piv["tahun"].astype(str).tolist()
-                    heat_data = [[y_idx, s_idx, round(row[s], 2)] for y_idx, row in df_piv.iterrows() for s_idx, s in enumerate(sektors)]
-                    with st.container(border=True):
-                        panel_title("Heatmap Pertumbuhan Tahunan")
-                        heat_opts = {
-                            "backgroundColor": "transparent",
-                            "tooltip": {"position": "top", "formatter": JsCode("function(p){return 'Pertumbuhan: <b>' + p.data[2] + '%</b>'}")},
-                            "grid": {"top": "8%", "bottom": "15%", "left": "35%"},
-                            "xAxis": {"type": "category", "data": years}, "yAxis": {"type": "category", "data": sektors},
-                            "visualMap": {"min": -5, "max": 10, "calculable": True, "orient": "horizontal", "left": "center", "bottom": "0%", "inRange": {"color": ["#EF4444", "#FEE2E2", COLORS[0]]}},
-                            "series": [{"type": "heatmap", "data": heat_data, "label": {"show": True, "formatter": JsCode("function(p){return p.data[2] + '%'}")}, "itemStyle": {"borderColor": "#fff", "borderWidth": 1}}],
-                        }
-                        st_echarts(options=heat_opts, height="420px", theme=e_theme)
+                    panel_title("Matriks Kinerja Kuadran BCG")
+                    scatter_opts = {
+                        "backgroundColor": "transparent",
+                        "tooltip": {"trigger": "item", "formatter": JsCode(
+                            "function(p){if(p.componentType==='markLine'){return p.name+': '+Number(p.value).toFixed(2)+'%';}"
+                            "return '<b>'+p.data.name+'</b><br/>Pangsa: '+p.data.value[0]+'%<br/>Growth: '+p.data.value[1]+'%';}"
+                        )},
+                        "xAxis": {"type": "value", "name": "Pangsa (%)", "nameLocation": "middle", "nameGap": 25},
+                        "yAxis": {"type": "value", "name": "Pertumbuhan (%)", "nameLocation": "middle", "nameGap": 30},
+                        "series": [{
+                            "type": "scatter", "symbolSize": 18, "itemStyle": {"color": COLORS[4], "opacity": 0.85},
+                            "data": scat_data, "label": {"show": True, "formatter": "{b}", "position": "right", "fontSize": 10},
+                            "markLine": {"animation": False, "lineStyle": {"type": "dashed", "color": "#7F8C8D"},
+                                         "data": [{"xAxis": avg_p, "name": "Batas Pangsa"}, {"yAxis": true_growth, "name": "Laju Daerah"}]},
+                        }],
+                    }
+                    st_echarts(options=scatter_opts, height="420px", theme=e_theme)
+
+            st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+            # Heatmap sengaja dibuat full-width (bukan berdampingan dengan scatter) karena
+            # butuh ruang horizontal untuk semua tahun x sektor - kalau diperas jadi setengah
+            # lebar, sel & labelnya jadi tumpang tindih dan tak terbaca.
+            if df_p["tahun"].nunique() < 2:
+                st.info("Butuh minimal 2 tahun data untuk heatmap.")
+            else:
+                df_piv = df_p.pivot_table(index="tahun", columns="sektor", values="nilai_adhk").pct_change() * 100
+                df_piv = df_piv.dropna().reset_index()
+                sektors = [c for c in df_piv.columns if c != "tahun"]
+                years = df_piv["tahun"].astype(str).tolist()
+                heat_data = [[y_idx, s_idx, round(row[s], 2)] for y_idx, row in df_piv.iterrows() for s_idx, s in enumerate(sektors)]
+                with st.container(border=True):
+                    panel_title("Heatmap Pertumbuhan Tahunan", "Geser slider di bawah grafik untuk lihat tahun lainnya")
+                    heat_opts = {
+                        "backgroundColor": "transparent",
+                        "tooltip": {"position": "top", "formatter": JsCode("function(p){return 'Pertumbuhan: <b>' + p.data[2] + '%</b>'}")},
+                        "grid": {"top": "5%", "bottom": "22%", "left": "230px", "right": "4%"},
+                        "dataZoom": [{"type": "slider", "xAxisIndex": 0, "height": 16, "bottom": "4%"}, {"type": "inside", "xAxisIndex": 0}],
+                        "xAxis": {"type": "category", "data": years, "axisLabel": {"fontSize": 12}},
+                        "yAxis": {"type": "category", "data": sektors, "axisLabel": {"fontSize": 12, "width": 210, "overflow": "truncate"}},
+                        "visualMap": {"min": -5, "max": 10, "calculable": True, "orient": "horizontal", "left": "center", "top": "0%", "inRange": {"color": ["#EF4444", "#FEE2E2", COLORS[0]]}},
+                        "series": [{"type": "heatmap", "data": heat_data, "label": {"show": True, "fontSize": 11, "formatter": JsCode("function(p){return p.data[2] + '%'}")}, "itemStyle": {"borderColor": "#fff", "borderWidth": 1}}],
+                    }
+                    st_echarts(options=heat_opts, height="520px", theme=e_theme)
 
 elif sub_kategori == "Ketahanan Pangan & NTP":
     page_header("🌾", "Kluster Primer & Ketahanan Pangan", breadcrumb_path)
